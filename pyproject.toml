@@ -1,0 +1,85 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "traceforge-osint"
+version = "1.0.0"
+description = "TraceForge — Open-Source Intelligence & Digital Forensics Platform"
+readme = "README.md"
+requires-python = ">=3.9"
+license = { text = "MIT" }
+authors = [
+    { name = "Aman Kumar Pandey", email = "paman7647@proton.me" }
+]
+keywords = [
+    "osint",
+    "dfir",
+    "digital-forensics",
+    "incident-response",
+    "security",
+    "threat-intelligence",
+    "pcap",
+    "stix",
+    "misp",
+    "ioc-extractor"
+]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Environment :: Console",
+    "Intended Audience :: Information Technology",
+    "Intended Audience :: System Administrators",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: MacOS",
+    "Operating System :: POSIX :: Linux",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Security",
+    "Topic :: System :: Networking",
+]
+dependencies = []
+
+[project.optional-dependencies]
+reporting = [
+    "openpyxl>=3.1.0",
+    "python-docx>=1.0.0",
+]
+docs = [
+    "sphinx>=7.0.0",
+    "myst-parser>=3.0.0",
+    "sphinx-rtd-theme>=2.0.0",
+]
+dev = [
+    "build>=1.0.0",
+    "twine>=5.0.0",
+    "pytest>=7.0.0",
+]
+all = [
+    "openpyxl>=3.1.0",
+    "python-docx>=1.0.0",
+    "sphinx>=7.0.0",
+    "myst-parser>=3.0.0",
+    "sphinx-rtd-theme>=2.0.0",
+    "build>=1.0.0",
+    "twine>=5.0.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/paman7647/TraceForge"
+Documentation = "https://traceforge.readthedocs.io"
+Repository = "https://github.com/paman7647/TraceForge.git"
+Issues = "https://github.com/paman7647/TraceForge/issues"
+Changelog = "https://github.com/paman7647/TraceForge/blob/master/CHANGELOG.md"
+
+[project.scripts]
+traceforge = "traceforge.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["traceforge*"]
+
+[tool.setuptools.package-data]
+traceforge = ["data/*", "data/tools.tsv", "data/VERSION"]

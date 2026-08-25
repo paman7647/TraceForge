@@ -1,0 +1,182 @@
+# ==============================================================================
+# TraceForge 1.0.0 — Canonical .gitignore
+# Professional Open-Source Security & OSINT Framework Ignore Rules
+# ==============================================================================
+
+# ------------------------------------------------------------------------------
+# 1. Python Build, Packaging & Bytecode
+# ------------------------------------------------------------------------------
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# ------------------------------------------------------------------------------
+# 2. Virtual Environments
+# ------------------------------------------------------------------------------
+.venv/
+.venv*/
+venv/
+venv*/
+env/
+env*/
+ENV/
+ENV*/
+env.bak/
+venv.bak/
+.osint_venv/
+traceforge-venv/
+
+# ------------------------------------------------------------------------------
+# 3. Go & Native Compiled Artifacts
+# ------------------------------------------------------------------------------
+bin/
+*.exe
+*.exe~
+*.dll
+*.dylib
+*.test
+*.out
+traceforge-native
+omni-tools
+native/build/
+target/
+
+# ------------------------------------------------------------------------------
+# 4. Test Suites, Coverage & Quality Tools (Excluded from Public Tracking)
+# ------------------------------------------------------------------------------
+tests/
+test/
+*.test.py
+*.test.sh
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+coverage.xml
+nosetests.xml
+*.cover
+*.py,cover
+.hypothesis/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+htmlcov/
+test-results/
+test-output/
+
+# ------------------------------------------------------------------------------
+# 5. Internal Maintainer, Scratch & Automation Scripts
+# ------------------------------------------------------------------------------
+# Ignore all internal scripts by default, preserving public user-facing scripts
+scripts/*
+!scripts/bootstrap.sh
+!scripts/doctor.sh
+
+# Explicit legacy and internal helper script patterns
+scripts/export_case.sh
+scripts/install_tool.sh
+scripts/enrich_catalog_termux.py
+scripts/generate_catalog_data.py
+scripts/benchmark_runtimes.py
+scripts/export_engine.py
+scripts/verify_all.py
+scripts/release_check.sh
+scripts/scan_secrets.py
+scripts/bump_version.py
+scripts/build_package.sh
+scripts/generate_catalog_docs.py
+scripts/generate_catalog_docs.sh
+scripts/*.dev.*
+scripts/dev/
+scripts/internal/
+scratch/
+upload_to_pypi.py
+
+# ------------------------------------------------------------------------------
+# 6. Documentation Build Artifacts
+# ------------------------------------------------------------------------------
+docs/_build/
+_build/
+build/docs/
+
+# ------------------------------------------------------------------------------
+# 7. Runtime Forensic Cases & Evidence Workspaces
+# ------------------------------------------------------------------------------
+workspace/*
+!workspace/.gitkeep
+
+# ------------------------------------------------------------------------------
+# 8. Secrets, Private Keys, Certificates & Local Credentials
+# ------------------------------------------------------------------------------
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+*.keystore
+*.jks
+id_rsa
+id_rsa.pub
+id_ed25519
+id_ed25519.pub
+credentials.json
+token.json
+secrets.json
+*.secret
+config.local.json
+traceforge-local.json
+
+# ------------------------------------------------------------------------------
+# 9. Operating System & Editor Metadata
+# ------------------------------------------------------------------------------
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+.AppleDouble
+.LSOverride
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+.idea/
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.example.json
+*.sublime-project
+*.sublime-workspace
+*.swp
+*.swo
+*.swn
+*.bak
+*~
+
+# ------------------------------------------------------------------------------
+# 10. Logs & Temporary Runtime Files
+# ------------------------------------------------------------------------------
+*.log
+logs/
+*.tmp
+*.temp
+*.pid

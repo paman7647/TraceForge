@@ -1,0 +1,86 @@
+name: Tool Addition Request
+description: Propose adding a new verified third-party utility to the central catalog.
+title: "[TOOL PROPOSAL]: "
+labels: ["tool-addition"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Please ensure the proposed utility is actively maintained, open source, and relevant to digital forensics, OSINT, or security investigations.
+  - type: input
+    id: tool-name
+    attributes:
+      label: Tool Name
+      placeholder: e.g. TruffleHog
+    validations:
+      required: true
+  - type: input
+    id: binary-name
+    attributes:
+      label: Executable / Binary Name
+      placeholder: e.g. trufflehog
+    validations:
+      required: true
+  - type: input
+    id: upstream-url
+    attributes:
+      label: Upstream Repository URL
+      placeholder: e.g. https://github.com/trufflesecurity/trufflehog
+    validations:
+      required: true
+  - type: dropdown
+    id: category
+    attributes:
+      label: Investigation Category
+      options:
+        - "Media & Image Forensics"
+        - "Network & PCAP Forensics"
+        - "Identity, Social & Username"
+        - "Email, Breach & Leak Intelligence"
+        - "Domain, DNS & Threat Recon"
+        - "Document & Metadata Harvesting"
+        - "OPSEC, Anonymization & Privacy"
+        - "Core CLI & Dependency Tools"
+    validations:
+      required: true
+  - type: dropdown
+    id: ecosystem
+    attributes:
+      label: Primary Ecosystem / Package Manager
+      options:
+        - "native (APT / Homebrew)"
+        - "python (pipx / PEP 668)"
+        - "go (go install)"
+        - "ruby (gem install)"
+        - "rust (cargo install)"
+        - "manual / git clone"
+    validations:
+      required: true
+  - type: input
+    id: mac-install
+    attributes:
+      label: macOS Install Command / Package
+      placeholder: e.g. trufflehog (or N/A)
+    validations:
+      required: true
+  - type: input
+    id: linux-install
+    attributes:
+      label: Linux (APT / distro) Install Command / Package
+      placeholder: e.g. trufflehog (or N/A)
+    validations:
+      required: true
+  - type: input
+    id: license
+    attributes:
+      label: License
+      placeholder: e.g. AGPL-3.0, Apache-2.0, MIT, GPL-3.0
+    validations:
+      required: true
+  - type: textarea
+    id: justification
+    attributes:
+      label: Justification & Forensic Value
+      description: Explain why this tool should be cataloged and how investigators benefit from it.
+    validations:
+      required: true

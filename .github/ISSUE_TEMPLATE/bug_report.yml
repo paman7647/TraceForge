@@ -1,0 +1,125 @@
+name: "🐛 Bug Report"
+description: "Report a reproducible defect or unexpected behavior in TraceForge"
+title: "[BUG]: "
+labels: ["bug", "needs-triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for reporting an issue with TraceForge!
+        
+        > **SECURITY NOTE**: If you have discovered a security vulnerability or sensitive data leak, **do not use this public form**. Follow the private reporting process outlined in [SECURITY.md](https://github.com/paman7647/TraceForge/blob/master/SECURITY.md).
+
+  - type: dropdown
+    id: branch
+    attributes:
+      label: "Branch or Release"
+      description: "Which branch or release tag did this occur on?"
+      options:
+        - "beta (Latest Development / Recommended for testing)"
+        - "master (Stable Release)"
+        - "Other / Custom"
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: "TraceForge Version"
+      description: "Output of `traceforge --version` or content of VERSION file"
+      placeholder: "1.0.0"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: os
+    attributes:
+      label: "Operating System"
+      description: "Target platform where the issue occurred"
+      options:
+        - "macOS Apple Silicon (arm64)"
+        - "macOS Intel (x86_64)"
+        - "Ubuntu / Debian (x86_64 or arm64)"
+        - "Kali Linux"
+        - "Termux / Android (Non-root userland)"
+        - "Other Linux Distribution"
+    validations:
+      required: true
+
+  - type: input
+    id: environment
+    attributes:
+      label: "Environment & Toolchain"
+      description: "Python version, Go version, and package manager details (run `traceforge doctor` for summary)"
+      placeholder: "Python 3.11.8, Go 1.22.2, Homebrew / APT / Termux pkg"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: profile
+    attributes:
+      label: "Active Runtime Profile"
+      description: "Which profile is active? (See `traceforge profile`)"
+      options:
+        - "python-go (Default: Python + Go Fast-Paths)"
+        - "python (Pure Python Reference)"
+        - "go (Compiled Go Tools)"
+        - "minimal (Core Built-ins Only)"
+        - "full (All Tools)"
+        - "custom"
+    validations:
+      required: true
+
+  - type: textarea
+    id: command
+    attributes:
+      label: "Command Executed"
+      description: "The exact CLI command or interactive steps that triggered the error"
+      placeholder: "traceforge tools pcap-summary ./sample.pcap"
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: "Expected Behavior"
+      description: "A clear and concise description of what you expected to happen"
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: "Actual Behavior"
+      description: "What actually occurred, including errors or unexpected exits"
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: "Steps to Reproduce"
+      description: "Step-by-step instructions to reproduce the issue"
+      placeholder: |
+        1. Initialize new case: `traceforge case new "Test Case"`
+        2. Ingest file: `traceforge case add-evidence ...`
+        3. Run command: `traceforge ...`
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: "Sanitized Logs & Error Traces"
+      description: "Paste relevant output or traceback (CONFIRM NO API KEYS, TOKENS, OR PRIVATE DATA ARE INCLUDED)"
+      render: shell
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: "Sanitization & Compliance Checklist"
+      options:
+        - label: "I have confirmed that no secrets, API keys, passwords, or confidential evidence data are included in this report."
+          required: true
+        - label: "I have verified this issue is not already reported in existing open issues."
+          required: true

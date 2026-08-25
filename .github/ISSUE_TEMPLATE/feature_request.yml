@@ -1,0 +1,42 @@
+name: "💡 Feature Request"
+description: "Suggest an idea, new tool integration, or enhancement for TraceForge"
+title: "[FEATURE]: "
+labels: ["enhancement", "needs-triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for suggesting a feature or tool addition to TraceForge!
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: "Problem or Investigative Need"
+      description: "What problem does this feature solve or what gap does it address in OSINT/DFIR workflows?"
+      placeholder: "When analyzing large PCAP files on mobile devices, extracting DNS query chains requires..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: "Proposed Solution"
+      description: "Describe the proposed tool integration, CLI option, or module improvement"
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: "Alternatives Considered"
+      description: "Any alternative approaches or existing tools evaluated?"
+
+  - type: checkboxes
+    id: platform_target
+    attributes:
+      label: "Target Platform Scope"
+      options:
+        - label: "macOS (Homebrew)"
+        - label: "Linux (Debian / Ubuntu / Kali)"
+        - label: "Termux / Android (Non-root userland)"
+        - label: "Pure Python / Go (Cross-Platform)"

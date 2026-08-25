@@ -1,0 +1,69 @@
+name: TraceForge Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  build-release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Dependencies
+        run: |
+          sudo apt-get update -q -y
+          sudo apt-get install -q -y shellcheck file zip
+
+      - name: Set Executable Permissions
+        run: |
+          chmod +x setup.sh run.sh install_all.sh main.sh modules/*.sh scripts/*.sh
+
+      - name: Validate Shell Syntax (bash -n)
+        run: |
+          for script in setup.sh run.sh install_all.sh main.sh lib/*.sh modules/*.sh scripts/*.sh; do
+            bash -n "$script"
+          done
+
+      - name: Build Release Distribution Archives
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          mkdir -p dist
+          
+          # Clean workspace directory preserving .gitkeep
+          find workspace -mindepth 1 -not -name '.gitkeep' -exec rm -rf {} +
+          
+          # Build ZIP Archive
+          zip -r -q "dist/TraceForge-v${VERSION}.zip" . \
+            -x ".git/*" ".github/*" ".osint_venv/*" ".DS_Store" "dist/*"
+          
+          # Build Tarball Archive
+          tar --exclude='.git' --exclude='.github' --exclude='.osint_venv' --exclude='.DS_Store' --exclude='dist' \
+            -czf "dist/TraceForge-v${VERSION}.tar.gz" .
+          
+          # Compute SHA-256 Checksums
+          cd dist
+          sha256sum TraceForge-v*.zip TraceForge-v*.tar.gz > SHA256SUMS
+          cd ..
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dist/TraceForge-v*.zip
+            dist/TraceForge-v*.tar.gz
+            dist/SHA256SUMS
+            RELEASE_NOTES.md
+          body_path: RELEASE_NOTES.md
+          draft: false
+          prerelease: false

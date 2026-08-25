@@ -1,0 +1,59 @@
+name: TraceForge CI
+
+on:
+  push:
+    branches: [ master, beta, dev ]
+  pull_request:
+    branches: [ master, beta, dev ]
+
+jobs:
+  lint-and-validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install System Dependencies & ShellCheck
+        run: |
+          sudo apt-get update -q -y
+          sudo apt-get install -q -y shellcheck file zip
+
+      - name: Set Executable Permissions
+        run: |
+          chmod +x setup.sh run.sh install_all.sh main.sh modules/*.sh scripts/*.sh
+
+      - name: Validate Shell Syntax (bash -n)
+        run: |
+          for script in setup.sh run.sh install_all.sh main.sh lib/*.sh modules/*.sh scripts/*.sh; do
+            bash -n "$script"
+            echo "PASS: $script syntax"
+          done
+
+      - name: Run ShellCheck Static Analysis
+        run: |
+          shellcheck -x -e SC1090,SC1091,SC2129 lib/*.sh modules/*.sh scripts/*.sh main.sh setup.sh run.sh install_all.sh
+
+      - name: Verify Package Build & Metadata (PyPA build & twine)
+        run: |
+          pip install --upgrade build twine wheel
+          mkdir -p traceforge/data
+          cp catalog/tools.tsv traceforge/data/tools.tsv
+          cp VERSION traceforge/data/VERSION
+          python3 -m build
+          twine check dist/*
+
+      - name: Validate CLI & Standalone Execution
+        run: |
+          pip install dist/*.whl
+          traceforge --version
+          python3 -m traceforge.cli doctor
+
+      - name: Build Read the Docs Documentation (Sphinx MyST)
+        run: |
+          pip install -r docs/requirements.txt
+          python3 -m sphinx -W -b html docs build/docs

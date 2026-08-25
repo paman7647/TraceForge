@@ -1,0 +1,20 @@
+TraceForge
+Copyright (c) 2026 Aman Kumar Pandey
+
+Lead Architect & Core Developer: Aman Kumar Pandey
+Contributors & Credits: Thanks to the Global Open-Source Security Community
+
+This project is an open-source command-line toolkit for OSINT, DFIR and security
+investigation, evidence handling, and first-party investigation tools.
+
+-------------------------------------------------------------------------------
+Third-Party Software & Tools Attribution Notice
+-------------------------------------------------------------------------------
+
+TraceForge installs and launches external command-line utilities.
+It does not vendor or redistribute third-party tool binaries. All third-party
+utilities installed or invoked through this suite remain the property of their
+respective authors and are governed by their respective open-source licenses.
+
+For a detailed index of cataloged tools, upstream repository links, and
+licenses, refer to THIRD_PARTY_NOTICES.md and catalog/TOOLS.md.

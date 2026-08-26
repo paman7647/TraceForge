@@ -60,15 +60,8 @@ native/build/
 target/
 
 # ------------------------------------------------------------------------------
-# 4. Test Suites, Coverage & Quality Tools (Excluded from Public Tracking)
+# 4. Test Coverage & Quality Tools Cache Artifacts
 # ------------------------------------------------------------------------------
-tests/
-test/
-test_*.py
-*_test.py
-*.test.py
-*.test.sh
-*_test.go
 .tox/
 .nox/
 .coverage
@@ -92,9 +85,11 @@ test-output/
 # Ignore all internal scripts by default, preserving public user-facing scripts
 scripts/*
 !scripts/bootstrap.sh
+!scripts/build_native.sh
 !scripts/doctor.sh
 !scripts/export_case.sh
 !scripts/install_tool.sh
+
 
 # Explicit legacy and internal helper script patterns
 scripts/enrich_catalog_termux.py

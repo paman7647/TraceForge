@@ -54,6 +54,7 @@ usage
 commands
 modules
 tools
+web
 configuration
 ```
 

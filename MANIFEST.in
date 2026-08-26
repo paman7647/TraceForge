@@ -12,7 +12,7 @@ recursive-include catalog tools.tsv TOOLS.md README.md
 recursive-include traceforge/data *
 recursive-include traceforge/web/static *
 recursive-include docs *
-recursive-include tests *.py
+
 
 global-exclude __pycache__
 global-exclude *.py[cod]

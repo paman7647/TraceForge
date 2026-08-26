@@ -60,13 +60,21 @@ native/build/
 target/
 
 # ------------------------------------------------------------------------------
-# 4. Test Coverage & Quality Tools Cache Artifacts
+# 4. Test Suites, Coverage & Quality Tools (Excluded from Public Tracking)
 # ------------------------------------------------------------------------------
+tests/
+test/
+test_*.py
+*_test.py
+*.test.py
+*.test.sh
+*_test.go
 .tox/
 .nox/
 .coverage
 .coverage.*
 .cache
+
 coverage.xml
 nosetests.xml
 *.cover

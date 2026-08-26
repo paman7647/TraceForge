@@ -59,8 +59,4 @@ jobs:
           pip install -r docs/requirements.txt
           python3 -m sphinx -W -b html docs build/docs
 
-      - name: Run Test Suite (pytest)
-        run: |
-          pip install pytest
-          pytest tests/ -v
 

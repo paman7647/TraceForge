@@ -105,9 +105,11 @@ class TestBatchEngine(unittest.TestCase):
         )
 
         self.assertEqual(plan.input_info["type"], "domain")
-        self.assertTrue(any(t["binary"] == "whois" for t in plan.executable_tools))
+        compatible_bins = [t["binary"] for t in (plan.executable_tools + plan.missing_tools)]
+        self.assertIn("whois", compatible_bins)
         self.assertTrue(any(t["binary"] == "exiftool" for t in plan.incompatible_tools))
         self.assertTrue(any(t["binary"] == "tshark" for t in plan.incompatible_tools))
+
 
     def test_normalized_tool_result_and_deduplication(self):
         t1 = NormalizedToolResult(

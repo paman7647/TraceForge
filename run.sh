@@ -7,6 +7,12 @@ IFS=$'\n\t'
 
 ROOT_DIR=$(CDPATH='' cd -- "$(dirname -- "$0")" && pwd -P)
 
+# 0. Initialize environment paths (bin, ~/.local/bin, go/bin, brew/bin)
+# shellcheck source=lib/platform.sh
+if [[ -f "$ROOT_DIR/lib/platform.sh" ]]; then
+    source "$ROOT_DIR/lib/platform.sh"
+fi
+
 # 1. Check if running inside an active virtualenv with TraceForge installed
 if [[ -n "${VIRTUAL_ENV:-}" ]] && [[ -x "${VIRTUAL_ENV}/bin/python" ]]; then
     if "${VIRTUAL_ENV}/bin/python" -c 'import traceforge' 2>/dev/null; then
@@ -18,6 +24,13 @@ fi
 if [[ -x "$ROOT_DIR/.venv/bin/python" ]]; then
     if "$ROOT_DIR/.venv/bin/python" -c 'import traceforge' 2>/dev/null; then
         exec "$ROOT_DIR/.venv/bin/python" -m traceforge "$@"
+    fi
+fi
+
+# 2b. Check fallback .osint_venv
+if [[ -x "$ROOT_DIR/.osint_venv/bin/python" ]]; then
+    if "$ROOT_DIR/.osint_venv/bin/python" -c 'import traceforge' 2>/dev/null; then
+        exec "$ROOT_DIR/.osint_venv/bin/python" -m traceforge "$@"
     fi
 fi
 
@@ -37,8 +50,9 @@ done
 
 # 5. If not found, provide a clean error and actionable instructions
 cat << 'EOF' >&2
-[-] TraceForge is not installed or configured in this environment.
+[ERROR] TraceForge is not installed or configured in this environment.
 
+TraceForge was trying to execute the Python CLI layer.
 To set up TraceForge automatically, run:
     ./setup.sh
 

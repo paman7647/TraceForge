@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# shellcheck disable=SC2034,SC2155,SC2206,SC2016,SC1090,SC1091,SC2295
 # TraceForge 1.0.0 — Primary Setup & Environment Installer
 # Supports macOS (Homebrew), Linux (Debian/Ubuntu/Kali/Arch/Fedora), and Termux (Android).
 
@@ -8,10 +9,17 @@ IFS=$'\n\t'
 ROOT_DIR=$(CDPATH='' cd -- "$(dirname -- "$0")" && pwd -P)
 cd "$ROOT_DIR"
 
+# shellcheck source=lib/common.sh
+source "$ROOT_DIR/lib/common.sh"
+# shellcheck source=lib/platform.sh
+source "$ROOT_DIR/lib/platform.sh"
+
 PROFILE="recommended"
 DRY_RUN=0
 NON_INTERACTIVE=0
 AUTO_INSTALL_DEPS=1
+REPAIR_MODE=0
+VERBOSE_MODE=0
 
 show_help() {
     cat << 'EOF'
@@ -24,6 +32,8 @@ Options:
   --profile <name>       Setup profile: minimal | recommended | full | custom
   --no-system-deps       Skip automatic installation of system packages (git, python, etc.)
   --dry-run              Preview planned setup actions without modifying system
+  --repair               Verify and repair existing virtualenv / toolchain installation
+  --verbose, -v          Show detailed command output during installation
   --non-interactive, -y  Run without prompting for confirmations
   --help, -h             Show this help message
 
@@ -38,6 +48,7 @@ Examples:
   ./setup.sh --profile recommended    # Direct recommended installation
   ./setup.sh -y                       # Non-interactive automated install
   ./setup.sh --dry-run                # Preview installation steps
+  ./setup.sh --repair                 # Repair an existing installation
 EOF
     exit 0
 }
@@ -58,6 +69,14 @@ while [[ $# -gt 0 ]]; do
             DRY_RUN=1
             shift
             ;;
+        --repair)
+            REPAIR_MODE=1
+            shift
+            ;;
+        --verbose|-v)
+            VERBOSE_MODE=1
+            shift
+            ;;
         --non-interactive|-y)
             NON_INTERACTIVE=1
             shift
@@ -66,16 +85,18 @@ while [[ $# -gt 0 ]]; do
             show_help
             ;;
         *)
-            echo "[-] Unknown option: $1" >&2
+            log_err "Unknown option: $1"
             show_help
             ;;
     esac
 done
 
-echo "======================================================================"
-echo "                   TRACEFORGE 1.0.0 — SETUP"
-echo "        Open-Source Intelligence & Digital Forensics Suite"
-echo "======================================================================"
+printf '%b' "$C_MAGENTA"
+printf '%s\n' '======================================================================'
+printf '%s\n' '                   TRACEFORGE 1.0.0 — SETUP                           '
+printf '%s\n' '        Open-Source Intelligence & Digital Forensics Suite            '
+printf '%s\n' '======================================================================'
+printf '%b\n' "$C_RESET"
 
 # Privilege execution helper
 run_as_root() {
@@ -91,28 +112,17 @@ run_as_root() {
 }
 
 # 1. Platform Detection
-OS_NAME="unknown"
-ARCH_NAME=$(uname -m 2>/dev/null || echo "unknown")
-IS_TERMUX=0
-PKG_MGR="none"
+detect_platform
+init_environment_paths
 
-if [[ -n "${TERMUX_VERSION:-}" ]] || [[ -d "/data/data/com.termux" ]] || [[ "${PREFIX:-}" == *com.termux* ]]; then
-    IS_TERMUX=1
-    OS_NAME="termux"
+PKG_MGR="none"
+if [[ "$IS_TERMUX" -eq 1 ]]; then
     PKG_MGR="pkg"
-elif [[ "$(uname -s 2>/dev/null)" == "Darwin" ]]; then
-    OS_NAME="darwin"
+elif [[ "$OS_TYPE" == "darwin" ]]; then
     if command -v brew >/dev/null 2>&1; then
         PKG_MGR="brew"
-    elif [[ -x "/opt/homebrew/bin/brew" ]]; then
-        eval "$(/opt/homebrew/bin/brew shellenv)"
-        PKG_MGR="brew"
-    elif [[ -x "/usr/local/bin/brew" ]]; then
-        eval "$(/usr/local/bin/brew shellenv)"
-        PKG_MGR="brew"
     fi
-elif [[ "$(uname -s 2>/dev/null)" == "Linux" ]]; then
-    OS_NAME="linux"
+elif [[ "$OS_TYPE" == "linux" ]]; then
     if command -v apt-get >/dev/null 2>&1; then
         PKG_MGR="apt"
     elif command -v pacman >/dev/null 2>&1; then
@@ -126,115 +136,70 @@ elif [[ "$(uname -s 2>/dev/null)" == "Linux" ]]; then
     fi
 fi
 
-echo "[+] Detected Platform : $OS_NAME ($ARCH_NAME)"
-echo "[+] Package Manager   : $PKG_MGR"
+log_info "Detected Platform : $OS_NAME ($OS_ARCH)"
+log_info "Package Manager   : $PKG_MGR"
 
 # 2. Automated Base System Dependencies Installation
 install_system_base_packages() {
     [[ "$AUTO_INSTALL_DEPS" -eq 1 ]] || return 0
 
-    echo "[*] Checking base system requirements (git, python3, curl, ffmpeg, build tools)..."
+    log_step "Checking base system requirements (git, python3, curl, build tools)..."
 
     if [[ "$IS_TERMUX" -eq 1 ]]; then
         if [[ "$DRY_RUN" -eq 1 ]]; then
-            echo "    [dry-run] pkg update && pkg install -y git python python-pip curl wget ffmpeg ca-certificates tar gzip unzip gnupg clang make"
+            log_info "[DRY-RUN] pkg update && pkg install -y git python python-pip curl wget ffmpeg ca-certificates tar gzip unzip gnupg clang make"
             return 0
         fi
-        echo "[*] Updating Termux package repositories..."
+        log_info "Updating Termux package repositories..."
         pkg update -y 2>/dev/null || apt-get update -y 2>/dev/null || true
-        echo "[*] Installing Termux base toolchain..."
+        log_info "Installing Termux base toolchain..."
         pkg install -y git python python-pip curl wget ffmpeg ca-certificates tar gzip unzip gnupg clang make 2>/dev/null || true
 
     elif [[ "$PKG_MGR" == "apt" ]]; then
         if [[ "$DRY_RUN" -eq 1 ]]; then
-            echo "    [dry-run] apt-get update && apt-get install -y git python3 python3-pip python3-venv python3-dev curl wget gnupg ca-certificates ffmpeg build-essential..."
+            log_info "[DRY-RUN] apt-get update && apt-get install -y git python3 python3-pip python3-venv python3-dev curl wget gnupg ca-certificates ffmpeg build-essential..."
             return 0
         fi
-        echo "[*] Updating APT package cache..."
+        log_info "Updating APT package cache..."
         DEBIAN_FRONTEND=noninteractive run_as_root apt-get update -y -qq || true
 
-        echo "[*] Installing core runtime packages via APT..."
+        log_info "Installing core runtime packages via APT..."
         DEBIAN_FRONTEND=noninteractive run_as_root apt-get install -y --no-install-recommends \
-            git \
-            python3 \
-            python3-pip \
-            python3-venv \
-            python3-dev \
-            curl \
-            wget \
-            gnupg \
-            ca-certificates \
-            tar \
-            gzip \
-            unzip \
-            build-essential \
-            ffmpeg \
-            xdg-utils \
-            lsb-release 2>/dev/null || true
-
-        # Optional GUI / headless browser / rendering support libraries
-        echo "[*] Ensuring graphical & document rendering dependencies..."
-        DEBIAN_FRONTEND=noninteractive run_as_root apt-get install -y --no-install-recommends \
-            fonts-liberation \
-            libnss3 \
-            libatk-bridge2.0-0 \
-            libatk1.0-0 \
-            libxcomposite1 \
-            libxdamage1 \
-            libxrandr2 \
-            libgbm1 \
-            libasound2 \
-            libpangocairo-1.0-0 \
-            libx11-xcb1 \
-            libxext6 \
-            libxrender1 \
-            libxtst6 \
-            libxshmfence1 \
-            libglib2.0-0 \
-            libdrm2 \
-            libxfixes3 \
-            libxcb1 \
-            libxi6 \
-            libpango-1.0-0 2>/dev/null || true
+            git python3 python3-pip python3-venv python3-dev curl wget gnupg ca-certificates \
+            tar gzip unzip build-essential ffmpeg xdg-utils lsb-release 2>/dev/null || true
 
     elif [[ "$PKG_MGR" == "pacman" ]]; then
         if [[ "$DRY_RUN" -eq 1 ]]; then
-            echo "    [dry-run] pacman -Sy --noconfirm git python python-pip curl wget ffmpeg ca-certificates base-devel"
+            log_info "[DRY-RUN] pacman -Sy --noconfirm git python python-pip curl wget ffmpeg ca-certificates base-devel"
             return 0
         fi
-        echo "[*] Installing base packages via pacman..."
+        log_info "Installing base packages via pacman..."
         run_as_root pacman -Sy --noconfirm git python python-pip curl wget ffmpeg ca-certificates base-devel 2>/dev/null || true
 
     elif [[ "$PKG_MGR" == "dnf" ]]; then
         if [[ "$DRY_RUN" -eq 1 ]]; then
-            echo "    [dry-run] dnf install -y git python3 python3-pip python3-devel curl wget ffmpeg ca-certificates gcc gcc-c++ make"
+            log_info "[DRY-RUN] dnf install -y git python3 python3-pip python3-devel curl wget ffmpeg ca-certificates gcc gcc-c++ make"
             return 0
         fi
-        echo "[*] Installing base packages via dnf..."
+        log_info "Installing base packages via dnf..."
         run_as_root dnf install -y git python3 python3-pip python3-devel curl wget ffmpeg ca-certificates gcc gcc-c++ make 2>/dev/null || true
 
-    elif [[ "$OS_NAME" == "darwin" ]]; then
+    elif [[ "$OS_TYPE" == "darwin" ]]; then
         if ! command -v brew >/dev/null 2>&1; then
-            echo "[*] Homebrew not detected. Installing Homebrew..."
+            log_info "Homebrew not detected. Installing Homebrew..."
             if [[ "$DRY_RUN" -eq 1 ]]; then
-                echo "    [dry-run] Install Homebrew via official shell script"
+                log_info "[DRY-RUN] Install Homebrew via official shell script"
             else
                 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)" 2>/dev/null || true
-                if [[ -x "/opt/homebrew/bin/brew" ]]; then
-                    eval "$(/opt/homebrew/bin/brew shellenv)"
-                    PKG_MGR="brew"
-                elif [[ -x "/usr/local/bin/brew" ]]; then
-                    eval "$(/usr/local/bin/brew shellenv)"
-                    PKG_MGR="brew"
-                fi
+                init_environment_paths
             fi
         fi
 
         if command -v brew >/dev/null 2>&1; then
             if [[ "$DRY_RUN" -eq 1 ]]; then
-                echo "    [dry-run] brew install python@3.11 git curl wget ffmpeg ca-certificates"
+                log_info "[DRY-RUN] brew install python@3.11 git curl wget ffmpeg ca-certificates"
             else
-                echo "[*] Checking Homebrew base formulas (python, git, curl, ffmpeg)..."
+                log_info "Checking Homebrew base formulas (python, git, curl, ffmpeg)..."
                 brew install python@3.11 git curl wget ffmpeg ca-certificates 2>/dev/null || true
             fi
         fi
@@ -261,9 +226,8 @@ find_python_interpreter() {
 
 PYTHON_BIN=$(find_python_interpreter || true)
 
-# If python is still missing, attempt emergency install on supported systems
 if [[ -z "$PYTHON_BIN" ]]; then
-    echo "[!] Python 3.9+ was not found in PATH. Attempting automatic provisioning..."
+    log_warn "Python 3.9+ was not found in PATH. Attempting automatic provisioning..."
     if [[ "$PKG_MGR" == "apt" ]]; then
         DEBIAN_FRONTEND=noninteractive run_as_root apt-get update -y && DEBIAN_FRONTEND=noninteractive run_as_root apt-get install -y python3 python3-venv python3-pip python3-dev
     elif [[ "$IS_TERMUX" -eq 1 ]]; then
@@ -275,8 +239,8 @@ if [[ -z "$PYTHON_BIN" ]]; then
 fi
 
 if [[ -z "$PYTHON_BIN" ]]; then
-    echo "[-] Error: Python 3.9 or higher is required but could not be detected or installed." >&2
-    if [[ "$OS_NAME" == "darwin" ]]; then
+    log_err "Python 3.9 or higher is required but could not be detected or installed."
+    if [[ "$OS_TYPE" == "darwin" ]]; then
         echo "    Install with: brew install python@3.11" >&2
     elif [[ "$IS_TERMUX" -eq 1 ]]; then
         echo "    Install with: pkg install python" >&2
@@ -287,7 +251,7 @@ if [[ -z "$PYTHON_BIN" ]]; then
 fi
 
 PY_VER=$("$PYTHON_BIN" -c 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}")' 2>/dev/null || echo "unknown")
-echo "[+] Detected Python   : $PYTHON_BIN (v$PY_VER)"
+log_ok "Detected Python   : $PYTHON_BIN (v$PY_VER)"
 
 # 4. Interactive Profile Selection if not specified
 if [[ "$NON_INTERACTIVE" -eq 0 ]] && [[ -t 0 ]]; then
@@ -333,7 +297,7 @@ case "$PROFILE" in
         ;;
 esac
 
-echo "[+] Selected Profile  : $INSTALL_PROFILE"
+log_info "Selected Profile  : $INSTALL_PROFILE"
 
 # 5. Dry Run Mode
 if [[ "$DRY_RUN" -eq 1 ]]; then
@@ -346,18 +310,26 @@ if [[ "$DRY_RUN" -eq 1 ]]; then
     echo "Native Provisioning  : Will invoke ./install_all.sh --profile $INSTALL_PROFILE --dry-run"
     echo ""
     if [[ -f "$ROOT_DIR/install_all.sh" ]]; then
-        "$ROOT_DIR/install_all.sh" --profile "$INSTALL_PROFILE" --dry-run
+        bash "$ROOT_DIR/install_all.sh" --profile "$INSTALL_PROFILE" --dry-run
     fi
-    echo "[+] Dry-run simulation completed. No changes were made."
+    log_ok "Dry-run simulation completed. No changes were made."
     exit 0
 fi
 
 # 6. Virtual Environment Setup & Auto-Healing
 VENV_DIR="$ROOT_DIR/.venv"
+if [[ "$REPAIR_MODE" -eq 1 ]] && [[ -d "$VENV_DIR" ]]; then
+    log_step "Repair mode: validating virtual environment integrity..."
+    if [[ ! -x "$VENV_DIR/bin/python" ]]; then
+        log_warn "Corrupted virtual environment detected. Removing and recreating..."
+        rm -rf "$VENV_DIR"
+    fi
+fi
+
 if [[ ! -d "$VENV_DIR" ]]; then
-    echo "[*] Creating virtual environment at .venv..."
+    log_step "Creating virtual environment at .venv..."
     if ! "$PYTHON_BIN" -m venv "$VENV_DIR" 2>/dev/null; then
-        echo "[!] Standard venv module creation failed. Attempting to install python3-venv / virtualenv..."
+        log_warn "Standard venv module creation failed. Attempting fallback..."
         if [[ "$PKG_MGR" == "apt" ]]; then
             DEBIAN_FRONTEND=noninteractive run_as_root apt-get install -y python3-venv python3-virtualenv 2>/dev/null || true
         elif [[ "$IS_TERMUX" -eq 1 ]]; then
@@ -367,45 +339,59 @@ if [[ ! -d "$VENV_DIR" ]]; then
     fi
 fi
 
-# Locate venv python
 VENV_PY="$VENV_DIR/bin/python"
 if [[ ! -x "$VENV_PY" ]]; then
-    echo "[-] Error: Virtual environment Python not found at $VENV_PY" >&2
+    log_err "Virtual environment Python not found at $VENV_PY"
     exit 1
 fi
 
-echo "[*] Upgrading pip and build tools in virtual environment..."
-"$VENV_PY" -m pip install --quiet --upgrade pip setuptools wheel 2>/dev/null || "$VENV_PY" -m pip install --upgrade pip setuptools wheel
+log_step "Upgrading pip and build tools in virtual environment..."
+if [[ "$VERBOSE_MODE" -eq 1 ]]; then
+    "$VENV_PY" -m pip install --upgrade pip setuptools wheel
+else
+    "$VENV_PY" -m pip install --quiet --upgrade pip setuptools wheel 2>/dev/null || "$VENV_PY" -m pip install --upgrade pip setuptools wheel
+fi
 
 # 7. Install TraceForge in Editable Mode
-echo "[*] Installing TraceForge into virtual environment..."
-"$VENV_PY" -m pip install --quiet -e . 2>/dev/null || "$VENV_PY" -m pip install -e .
+log_step "Installing TraceForge into virtual environment..."
+if [[ "$VERBOSE_MODE" -eq 1 ]]; then
+    "$VENV_PY" -m pip install -e .
+else
+    "$VENV_PY" -m pip install --quiet -e . 2>/dev/null || "$VENV_PY" -m pip install -e .
+fi
 
 # 8. Optional Native Helpers & Tools Provisioning
 if [[ "$INSTALL_PROFILE" != "minimal" ]] && [[ -f "$ROOT_DIR/install_all.sh" ]]; then
-    echo "[*] Provisioning profile dependencies ($INSTALL_PROFILE)..."
+    log_step "Provisioning profile dependencies ($INSTALL_PROFILE)..."
     bash "$ROOT_DIR/install_all.sh" --profile "$INSTALL_PROFILE"
 fi
 
 # 9. Build Go Fast-Path Binary if Go is installed
 if command -v go >/dev/null 2>&1 && [[ -d "$ROOT_DIR/go" ]]; then
-    echo "[*] Compiling Go fast-path acceleration binary..."
+    log_step "Compiling Go fast-path acceleration binary..."
     mkdir -p "$ROOT_DIR/bin"
     (cd "$ROOT_DIR/go" && go build -trimpath -ldflags="-s -w" -o "$ROOT_DIR/bin/traceforge-native" .) 2>/dev/null || true
     if [[ -x "$ROOT_DIR/bin/traceforge-native" ]]; then
-        echo "[+] Go acceleration binary built: bin/traceforge-native"
+        log_ok "Go acceleration binary built: bin/traceforge-native"
+    else
+        log_warn "Go build completed with non-fatal warnings."
     fi
+else
+    log_info "Go compiler not detected; Python high-throughput fallbacks will be used."
 fi
 
-# 10. Set executable permissions
-chmod +x "$ROOT_DIR/run.sh" "$ROOT_DIR/main.sh" "$ROOT_DIR/setup.sh" "$ROOT_DIR/install_all.sh" "$ROOT_DIR/modules"/*.sh "$ROOT_DIR/scripts"/*.sh 2>/dev/null || true
+# 10. Set executable permissions safely
+chmod +x "$ROOT_DIR/run.sh" "$ROOT_DIR/main.sh" "$ROOT_DIR/setup.sh" "$ROOT_DIR/install_all.sh" \
+    "$ROOT_DIR/modules"/*.sh "$ROOT_DIR/scripts"/*.sh 2>/dev/null || true
 
 # 11. Verify Installation
-echo ""
-echo "======================================================================"
-echo "                  TRACEFORGE INSTALLATION COMPLETE"
-echo "======================================================================"
-"$VENV_PY" -m traceforge --version || true
+printf '\n%b' "$C_MAGENTA"
+printf '%s\n' '======================================================================'
+printf '%s\n' '                  TRACEFORGE INSTALLATION COMPLETE                    '
+printf '%s\n' '======================================================================'
+printf '%b\n' "$C_RESET"
+
+"$VENV_PY" -m traceforge --version 2>/dev/null || log_ok "TraceForge core installed."
 
 echo ""
 echo "Launch TraceForge with:"

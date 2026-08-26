@@ -62,9 +62,18 @@ detect_platform() {
             if [[ -r /etc/os-release ]]; then
                 LINUX_DISTRO="$(awk -F= '$1=="ID" {gsub(/"/, "", $2); print $2}' /etc/os-release)"
                 LINUX_VERSION="$(awk -F= '$1=="VERSION_ID" {gsub(/"/, "", $2); print $2}' /etc/os-release)"
+            elif command -v lsb_release >/dev/null 2>&1; then
+                LINUX_DISTRO="$(lsb_release -si 2>/dev/null | tr '[:upper:]' '[:lower:]' || echo "linux")"
+                LINUX_VERSION="$(lsb_release -sr 2>/dev/null || echo "unknown")"
             elif [[ -r /etc/debian_version ]]; then
                 LINUX_DISTRO="debian"
                 LINUX_VERSION="$(cat /etc/debian_version)"
+            elif [[ -r /etc/arch-release ]]; then
+                LINUX_DISTRO="arch"
+                LINUX_VERSION="rolling"
+            elif [[ -r /etc/fedora-release ]]; then
+                LINUX_DISTRO="fedora"
+                LINUX_VERSION="$(awk '{print $3}' /etc/fedora-release 2>/dev/null || echo "unknown")"
             fi
             ;;
         *)
@@ -76,7 +85,12 @@ detect_platform() {
 
 init_environment_paths() {
     # 0. Suite native binaries ($ROOT_DIR/bin or current directory bin)
-    local suite_bin="${ROOT_DIR:-$(pwd)}/bin"
+    local root_base="${ROOT_DIR:-}"
+    if [[ -z "$root_base" ]] && command -v project_root >/dev/null 2>&1; then
+        root_base="$(project_root 2>/dev/null || pwd -P)"
+    fi
+    [[ -z "$root_base" ]] && root_base="$(pwd -P)"
+    local suite_bin="$root_base/bin"
     if [[ -d "$suite_bin" ]]; then
         case ":$PATH:" in
             *":$suite_bin:"*) ;;

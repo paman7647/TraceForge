@@ -90,10 +90,10 @@ test-output/
 scripts/*
 !scripts/bootstrap.sh
 !scripts/doctor.sh
+!scripts/export_case.sh
+!scripts/install_tool.sh
 
 # Explicit legacy and internal helper script patterns
-scripts/export_case.sh
-scripts/install_tool.sh
 scripts/enrich_catalog_termux.py
 scripts/generate_catalog_data.py
 scripts/benchmark_runtimes.py

@@ -2,7 +2,7 @@
 # shellcheck disable=SC2034,SC2155,SC2206,SC2016,SC1090,SC1091,SC2295
 # =============================================================================
 # TraceForge — lib/packages.sh
-# Ecosystem package managers: Homebrew, APT, Termux (pkg), pipx, Go, Gem, Cargo.
+# Ecosystem package managers: Homebrew, APT, Pacman, DNF, Termux (pkg), pipx, Go, Gem, Cargo.
 # =============================================================================
 
 [[ -n "${_TRACEFORGE_LIB_PACKAGES_LOADED:-}" ]] && return 0
@@ -16,7 +16,7 @@ source "$SCRIPT_DIR/platform.sh"
 
 APT_UPDATED_FLAG=0
 TERMUX_UPDATED_FLAG=0
-VENV_PATH="$(project_root)/.osint_venv"
+VENV_PATH="$(project_root)/.venv"
 
 # Execute with appropriate privileges depending on platform
 sudo_exec() {
@@ -37,11 +37,11 @@ termux_update_cached() {
     if [[ "$TERMUX_UPDATED_FLAG" -eq 1 ]]; then
         return 0
     fi
-    info "Updating Termux package repository metadata..."
+    log_info "Updating Termux package repository metadata..."
     if need_cmd pkg; then
-        pkg update -y || warn "Termux 'pkg update' returned non-zero; continuing."
+        pkg update -y 2>/dev/null || log_warn "Termux 'pkg update' returned non-zero; continuing."
     else
-        apt-get update -y || warn "Termux 'apt-get update' returned non-zero; continuing."
+        apt-get update -y 2>/dev/null || log_warn "Termux 'apt-get update' returned non-zero; continuing."
     fi
     TERMUX_UPDATED_FLAG=1
 }
@@ -53,20 +53,20 @@ install_termux_package() {
     [[ -n "$package" && "$package" != "manual" && "$package" != "n/a" && "$package" != "-" ]] || return 0
 
     if [[ -n "$binary_check" ]] && need_cmd "$binary_check"; then
-        info "Binary already available: $binary_check"
+        log_ok "Binary already available: $binary_check"
         return 0
     fi
 
     termux_update_cached
-    info "Installing Termux package: $package"
+    log_info "Installing Termux package: $package"
     if need_cmd pkg; then
-        pkg install -y "$package" || {
-            warn "Termux 'pkg' failed to install package '$package'."
+        pkg install -y "$package" 2>/dev/null || {
+            log_warn "Termux 'pkg' failed to install package '$package'."
             return 1
         }
     else
-        DEBIAN_FRONTEND=noninteractive apt-get install -y "$package" || {
-            warn "Termux 'apt-get' failed to install package '$package'."
+        DEBIAN_FRONTEND=noninteractive apt-get install -y "$package" 2>/dev/null || {
+            log_warn "Termux 'apt-get' failed to install package '$package'."
             return 1
         }
     fi
@@ -81,7 +81,7 @@ ensure_termux_storage() {
         return 0
     fi
 
-    warn "Shared Android storage is not available yet."
+    log_warn "Shared Android storage is not available yet."
     printf '\n%bTo grant TraceForge access to Android shared files (/sdcard, Downloads, DCIM), run:%b\n' "$C_YELLOW" "$C_RESET"
     printf '  %btermux-setup-storage%b\n\n' "$C_BOLD" "$C_RESET"
     printf 'Then restart or retry your investigation.\n\n'
@@ -93,8 +93,8 @@ apt_update_cached() {
     if [[ "$APT_UPDATED_FLAG" -eq 1 ]]; then
         return 0
     fi
-    info "Updating APT package cache..."
-    sudo_exec apt-get update -y
+    log_info "Updating APT package cache..."
+    sudo_exec apt-get update -y -qq 2>/dev/null || true
     APT_UPDATED_FLAG=1
 }
 
@@ -106,12 +106,12 @@ ensure_homebrew_installed() {
     fi
 
     if [[ "$OS_TYPE" != "darwin" ]]; then
-        warn "Homebrew auto-installer is primarily for macOS."
+        log_warn "Homebrew auto-installer is primarily for macOS."
         return 1
     fi
 
-    info "Homebrew not detected. Launching official Homebrew installation script..."
-    /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+    log_info "Homebrew not detected. Launching official Homebrew installation script..."
+    /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)" 2>/dev/null || true
     init_environment_paths
 
     if ! need_cmd brew; then
@@ -127,13 +127,13 @@ install_brew_formula() {
     ensure_homebrew_installed
 
     if brew list --formula "$formula" >/dev/null 2>&1; then
-        info "Homebrew formula already installed: $formula"
+        log_ok "Homebrew formula already installed: $formula"
         return 0
     fi
 
-    info "Installing Homebrew formula: $formula"
-    brew install "$formula" || {
-        warn "Failed to install Homebrew formula '$formula'. Please check manual installation."
+    log_info "Installing Homebrew formula: $formula"
+    brew install "$formula" 2>/dev/null || {
+        log_warn "Failed to install Homebrew formula '$formula'. Please check manual installation."
         return 1
     }
 }
@@ -145,14 +145,14 @@ install_apt_package() {
     [[ -n "$package" && "$package" != "manual" && "$package" != "n/a" && "$package" != "-" ]] || return 0
 
     if [[ -n "$binary_check" ]] && need_cmd "$binary_check"; then
-        info "Binary already available: $binary_check"
+        log_ok "Binary already available: $binary_check"
         return 0
     fi
 
     apt_update_cached
-    info "Installing APT package: $package"
-    DEBIAN_FRONTEND=noninteractive sudo_exec apt-get install -y "$package" || {
-        warn "APT failed to install package '$package'."
+    log_info "Installing APT package: $package"
+    DEBIAN_FRONTEND=noninteractive sudo_exec apt-get install -y --no-install-recommends "$package" 2>/dev/null || {
+        log_warn "APT failed to install package '$package'."
         return 1
     }
 }
@@ -164,7 +164,7 @@ ensure_pipx() {
         return 0
     fi
 
-    info "Setting up isolated pipx environment (PEP 668 compliant)..."
+    log_info "Setting up isolated pipx environment (PEP 668 compliant)..."
 
     if [[ "$OS_TYPE" == "darwin" ]]; then
         install_brew_formula pipx
@@ -176,9 +176,9 @@ ensure_pipx() {
     if [[ "$OS_TYPE" == "termux" ]]; then
         install_termux_package "python" "python3"
         python3 -m pip install --user --upgrade pip pipx 2>/dev/null || {
-            info "Creating isolated virtualenv for pipx under Termux..."
-            python3 -m venv "$VENV_PATH"
-            "$VENV_PATH/bin/pip" install pipx
+            log_info "Creating isolated virtualenv for pipx under Termux..."
+            python3 -m venv "$VENV_PATH" 2>/dev/null || true
+            "$VENV_PATH/bin/pip" install pipx 2>/dev/null || true
             mkdir -p "$HOME/.local/bin"
             ln -sf "$VENV_PATH/bin/pipx" "$HOME/.local/bin/pipx"
         }
@@ -189,8 +189,8 @@ ensure_pipx() {
     # Linux flow: Try system pipx first
     if [[ "$OS_TYPE" == "linux" ]]; then
         apt_update_cached
-        if apt-cache show pipx >/dev/null 2>&1; then
-            DEBIAN_FRONTEND=noninteractive sudo_exec apt-get install -y pipx
+        if command -v apt-cache >/dev/null 2>&1 && apt-cache show pipx >/dev/null 2>&1; then
+            DEBIAN_FRONTEND=noninteractive sudo_exec apt-get install -y pipx 2>/dev/null || true
             init_environment_paths
             pipx ensurepath >/dev/null 2>&1 || true
             return 0
@@ -204,13 +204,15 @@ ensure_pipx() {
     fi
 
     if [[ ! -d "$VENV_PATH" ]]; then
-        info "Creating isolated Python environment at $VENV_PATH..."
-        python3 -m venv "$VENV_PATH"
+        log_info "Creating isolated Python environment at $VENV_PATH..."
+        python3 -m venv "$VENV_PATH" 2>/dev/null || true
     fi
 
-    "$VENV_PATH/bin/python" -m pip install --upgrade pip pipx
-    mkdir -p "$HOME/.local/bin"
-    ln -sf "$VENV_PATH/bin/pipx" "$HOME/.local/bin/pipx"
+    if [[ -x "$VENV_PATH/bin/python" ]]; then
+        "$VENV_PATH/bin/python" -m pip install --upgrade pip pipx 2>/dev/null || true
+        mkdir -p "$HOME/.local/bin"
+        ln -sf "$VENV_PATH/bin/pipx" "$HOME/.local/bin/pipx"
+    fi
     init_environment_paths
 }
 
@@ -223,13 +225,13 @@ install_pipx_app() {
     ensure_pipx
 
     if need_cmd "$binary_name"; then
-        info "Python tool already installed: $binary_name"
+        log_ok "Python tool already installed: $binary_name"
         return 0
     fi
 
-    info "Installing Python application via pipx: $package"
-    pipx install "$package" || {
-        warn "pipx failed to install '$package'."
+    log_info "Installing Python application via pipx: $package"
+    pipx install "$package" 2>/dev/null || {
+        log_warn "pipx failed to install '$package'."
         return 1
     }
     init_environment_paths
@@ -242,7 +244,7 @@ ensure_go() {
         return 0
     fi
 
-    info "Installing Go toolchain..."
+    log_info "Installing Go toolchain..."
     if [[ "$OS_TYPE" == "darwin" ]]; then
         install_brew_formula go
     elif [[ "$OS_TYPE" == "termux" ]]; then
@@ -261,19 +263,19 @@ install_go_tool() {
 
     ensure_go
     if ! need_cmd go; then
-        warn "Go compiler not available; skipping Go tool $binary_name."
+        log_warn "Go compiler not available; skipping Go tool $binary_name."
         return 1
     fi
 
     if need_cmd "$binary_name"; then
-        info "Go tool already installed: $binary_name"
+        log_ok "Go tool already installed: $binary_name"
         return 0
     fi
 
-    info "Compiling and installing Go tool: $binary_name ($module_path)..."
+    log_info "Compiling and installing Go tool: $binary_name ($module_path)..."
     mkdir -p "${GOPATH:-$HOME/go}/bin"
-    go install "$module_path" || {
-        warn "Failed to install Go tool $binary_name ($module_path)."
+    go install "$module_path" 2>/dev/null || {
+        log_warn "Failed to install Go tool $binary_name ($module_path)."
         return 1
     }
     init_environment_paths
@@ -286,7 +288,7 @@ ensure_ruby() {
         return 0
     fi
 
-    info "Installing Ruby environment..."
+    log_info "Installing Ruby environment..."
     if [[ "$OS_TYPE" == "darwin" ]]; then
         install_brew_formula ruby
     elif [[ "$OS_TYPE" == "termux" ]]; then
@@ -310,24 +312,24 @@ install_gem_tool() {
 
     ensure_ruby
     if ! need_cmd gem; then
-        warn "RubyGems unavailable; skipping $gem_name."
+        log_warn "RubyGems unavailable; skipping $gem_name."
         return 1
     fi
 
     if need_cmd "$binary_name"; then
-        info "Ruby gem already installed: $binary_name"
+        log_ok "Ruby gem already installed: $binary_name"
         return 0
     fi
 
-    info "Installing Ruby gem: $gem_name"
+    log_info "Installing Ruby gem: $gem_name"
     if [[ "$OS_TYPE" == "darwin" || "$OS_TYPE" == "termux" ]]; then
-        gem install --user-install "$gem_name" || {
-            warn "Failed to install gem '$gem_name'."
+        gem install --user-install "$gem_name" 2>/dev/null || {
+            log_warn "Failed to install gem '$gem_name'."
             return 1
         }
     else
-        sudo_exec gem install "$gem_name" || {
-            warn "Failed to install gem '$gem_name'."
+        sudo_exec gem install "$gem_name" 2>/dev/null || {
+            log_warn "Failed to install gem '$gem_name'."
             return 1
         }
     fi
@@ -341,7 +343,7 @@ ensure_cargo() {
         return 0
     fi
 
-    info "Installing Rust/Cargo toolchain..."
+    log_info "Installing Rust/Cargo toolchain..."
     if [[ "$OS_TYPE" == "darwin" ]]; then
         install_brew_formula rust
     elif [[ "$OS_TYPE" == "termux" ]]; then
@@ -360,18 +362,18 @@ install_cargo_tool() {
 
     ensure_cargo
     if ! need_cmd cargo; then
-        warn "Cargo unavailable; skipping crate $crate_name."
+        log_warn "Cargo unavailable; skipping crate $crate_name."
         return 1
     fi
 
     if need_cmd "$binary_name"; then
-        info "Cargo binary already installed: $binary_name"
+        log_ok "Cargo binary already installed: $binary_name"
         return 0
     fi
 
-    info "Building and installing Cargo crate: $crate_name..."
-    cargo install "$crate_name" || {
-        warn "Failed to install Cargo crate '$crate_name'."
+    log_info "Building and installing Cargo crate: $crate_name..."
+    cargo install "$crate_name" 2>/dev/null || {
+        log_warn "Failed to install Cargo crate '$crate_name'."
         return 1
     }
     init_environment_paths

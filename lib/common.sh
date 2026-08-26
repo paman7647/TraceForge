@@ -11,7 +11,6 @@ readonly _TRACEFORGE_LIB_COMMON_LOADED=1
 set -o pipefail
 
 # Terminal colors and styling with TTY auto-detection
-# shellcheck disable=SC2034
 if [[ -t 1 && -n "${TERM:-}" && "${TERM:-}" != "dumb" ]]; then
     readonly C_RED=$'\033[0;31m'
     readonly C_GREEN=$'\033[0;32m'
@@ -34,26 +33,51 @@ else
     readonly C_RESET=''
 fi
 
-# Logging functions
+# Standardized Logging functions
+log_info() {
+    printf '%b[INFO]%b %s\n' "$C_BLUE" "$C_RESET" "$*" >&2
+}
+
+log_ok() {
+    printf '%b[OK]%b   %s\n' "$C_GREEN" "$C_RESET" "$*" >&2
+}
+
+log_warn() {
+    printf '%b[WARN]%b %s\n' "$C_YELLOW" "$C_RESET" "$*" >&2
+}
+
+log_err() {
+    printf '%b[ERROR]%b %s\n' "$C_RED" "$C_RESET" "$*" >&2
+}
+
+log_skip() {
+    printf '%b[SKIP]%b %s\n' "$C_DIM" "$C_RESET" "$*" >&2
+}
+
+log_step() {
+    printf '%b[*]%b %s\n' "$C_CYAN" "$C_RESET" "$*" >&2
+}
+
+# Compatibility aliases
 info() {
-    printf '%b[+]%b %s\n' "$C_GREEN" "$C_RESET" "$*" >&2
+    log_info "$*"
 }
 
 warn() {
-    printf '%b[!]%b %s\n' "$C_YELLOW" "$C_RESET" "$*" >&2
+    log_warn "$*"
 }
 
 err() {
-    printf '%b[-]%b %s\n' "$C_RED" "$C_RESET" "$*" >&2
-}
-
-die() {
-    printf '%b[-] FATAL:%b %s\n' "$C_RED" "$C_RESET" "$*" >&2
-    exit 1
+    log_err "$*"
 }
 
 step() {
-    printf '%b[*]%b %s\n' "$C_CYAN" "$C_RESET" "$*" >&2
+    log_step "$*"
+}
+
+die() {
+    printf '%b[ERROR] FATAL:%b %s\n' "$C_RED" "$C_RESET" "$*" >&2
+    exit 1
 }
 
 # Command existence check
@@ -120,7 +144,7 @@ read_input() {
         printf '%b%s%b: ' "$C_CYAN" "$prompt_msg" "$C_RESET" >&2
     fi
 
-    IFS= read -r user_val
+    IFS= read -r user_val || true
     if [[ -z "$user_val" && -n "$default_val" ]]; then
         user_val="$default_val"
     fi
@@ -130,7 +154,6 @@ read_input() {
 # Pause prompt for operator menus
 pause_menu() {
     if [[ -t 0 ]]; then
-        # shellcheck disable=SC2034
         local dummy
         printf '\n%bPress [Enter] to continue...%b ' "$C_DIM" "$C_RESET" >&2
         IFS= read -r dummy || true
@@ -144,7 +167,7 @@ safe_run_cmd() {
     local -a cmd_args=("$@")
 
     if ! need_cmd "$cmd_binary"; then
-        warn "Command '$cmd_binary' is not installed or not found on PATH."
+        log_warn "Command '$cmd_binary' is not installed or not found on PATH."
         return 127
     fi
 

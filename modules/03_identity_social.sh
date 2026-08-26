@@ -84,10 +84,13 @@ step "Aggregating discovered profile URLs..."
         | grep -v 'github.com/p1ngul1n0/blackbird' \
         | sort -u || true
     echo
-} | tee "$RUN_DIR/aggregated_profiles.txt" >> "$REPORT"
+} > "$RUN_DIR/aggregated_profiles.txt"
 
-printf 'Unique Discovered URLs: %s\n' "$(wc -l < "$RUN_DIR/aggregated_profiles.txt" | tr -d ' ')" >> "$REPORT"
-printf 'Analysis Completed    : %s\n' "$(date '+%Y-%m-%d %H:%M:%S %z')" >> "$REPORT"
+{
+    cat "$RUN_DIR/aggregated_profiles.txt"
+    printf 'Unique Discovered URLs: %s\n' "$(wc -l < "$RUN_DIR/aggregated_profiles.txt" | tr -d ' ')"
+    printf 'Analysis Completed    : %s\n' "$(date '+%Y-%m-%d %H:%M:%S %z')"
+} >> "$REPORT"
 
 find "$RUN_DIR" -maxdepth 2 -type f | sort > "$RUN_DIR/manifest.txt"
 

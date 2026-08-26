@@ -36,7 +36,7 @@ case_export() {
     fi
     mkdir -p "$export_base_dir"
 
-    info "Starting export for Case: $case_id [Format: $export_fmt | Redacted: $is_redact]"
+    log_info "Starting export for Case: $case_id [Format: $export_fmt | Redacted: $is_redact]"
 
     # 1. Generate Markdown & HTML Reports first
     report_generate_markdown "$case_id"
@@ -45,41 +45,35 @@ case_export() {
         report_generate_pdf "$case_id" || true
     fi
 
-    # 2. Invoke Python Export Engine
-    local py_args=(
-        "$(project_root)/scripts/export_engine.py"
-        "$case_json"
-        "--out-dir" "$export_base_dir"
-        "--format" "$export_fmt"
-    )
-    if [[ "$is_redact" == "true" ]]; then
-        py_args+=("--redact")
-    fi
-    if [[ -n "$severity_filter" ]]; then
-        py_args+=("--severity" "$severity_filter")
-    fi
-    if [[ -n "$conf_filter" ]]; then
-        py_args+=("--confidence" "$conf_filter")
-    fi
-
-    python3 "${py_args[@]}"
+    # 2. Invoke Python Exporter Engine directly
+    _run_python_exporter "$case_id" "$export_fmt" "$export_base_dir" "$is_redact"
 
     # Copy human reports into exports folder
     mkdir -p "$export_base_dir/report"
     cp -f "$case_path/reports"/* "$export_base_dir/report/" 2>/dev/null || true
 
     # 3. Generate EXPORT-MANIFEST.txt and SHA256SUMS
-    step "Generating export manifest and cryptographic checksums..."
+    log_step "Generating export manifest and cryptographic checksums..."
     find "$export_base_dir" -type f | sort > "$export_base_dir/EXPORT-MANIFEST.txt"
     (
         cd "$export_base_dir" && \
         find . -type f -not -name 'SHA256SUMS' -not -name 'EXPORT-MANIFEST.txt' -print0 | \
-        xargs -0 shasum -a 256 2>/dev/null || xargs -0 sha256sum 2>/dev/null || true
+        (xargs -0 shasum -a 256 2>/dev/null || xargs -0 sha256sum 2>/dev/null || true)
     ) > "$export_base_dir/SHA256SUMS"
 
     case_log_chain "$case_id" "CASE_EXPORTED" "N/A" "N/A" "N/A" "export.sh" "Exported $export_fmt (Redacted: $is_redact)"
-    info "Case export completed successfully: $export_base_dir"
+    log_ok "Case export completed successfully: $export_base_dir"
 }
+
+# Individual format export shortcuts
+export_case_all() { case_export "$1" "all" "${2:-false}" "" ""; }
+export_case_tabular() { case_export "$1" "tabular" "${2:-false}" "" ""; }
+export_case_stix() { case_export "$1" "stix" "${2:-false}" "" ""; }
+export_case_misp() { case_export "$1" "misp" "${2:-false}" "" ""; }
+export_case_geo() { case_export "$1" "geo" "${2:-false}" "" ""; }
+export_case_timesketch() { case_export "$1" "timesketch" "${2:-false}" "" ""; }
+export_case_xlsx() { case_export "$1" "xlsx" "${2:-false}" "" ""; }
+export_case_docx() { case_export "$1" "docx" "${2:-false}" "" ""; }
 
 # Package case into ZIP / TAR.GZ archive
 case_package_archive() {
@@ -94,15 +88,23 @@ case_package_archive() {
     local out_archive=""
     if [[ "$pkg_type" == "zip" ]]; then
         out_archive="$case_path/${case_id}-package.zip"
-        (cd "$case_path" && zip -r -q "$out_archive" reports/ exports/ manifest/ case.json case.yml)
+        (cd "$case_path" && zip -r -q "$out_archive" reports/ exports/ manifest/ case.json case.yml 2>/dev/null || true)
     else
         out_archive="$case_path/${case_id}-package.tar.gz"
-        (cd "$case_path" && tar -czf "$out_archive" reports/ exports/ manifest/ case.json case.yml)
+        (cd "$case_path" && tar -czf "$out_archive" reports/ exports/ manifest/ case.json case.yml 2>/dev/null || true)
     fi
 
-    local arch_hash
-    arch_hash="$(hash_file "$out_archive")"
-    info "Packaged case archive: $out_archive"
-    info "Archive SHA-256 Digest: $arch_hash"
-    printf '%s\n' "$out_archive"
+    if [[ -f "$out_archive" ]]; then
+        local arch_hash
+        arch_hash="$(hash_file "$out_archive")"
+        log_ok "Packaged case archive: $out_archive"
+        log_info "Archive SHA-256 Digest: $arch_hash"
+        printf '%s\n' "$out_archive"
+    else
+        log_warn "Archive creation failed. Verify tar or zip is installed."
+    fi
+}
+
+export_package_case() {
+    case_package_archive "$1" "${2:-zip}"
 }

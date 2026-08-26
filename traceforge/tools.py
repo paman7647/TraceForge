@@ -30,16 +30,33 @@ RE_SHA1 = re.compile(r"\b[a-fA-F0-9]{40}\b")
 RE_MD5 = re.compile(r"\b[a-fA-F0-9]{32}\b")
 RE_CVE = re.compile(r"\bCVE-[0-9]{4}-[0-9]{4,8}\b")
 
-def defang_ioc(ioc_type: str, value: str) -> str:
-    """Defangs live indicators into inert text."""
+def defang_ioc(ioc_type_or_value: str, value_or_type: Optional[str] = None) -> str:
+    """Defangs live indicators into safe, inert text."""
+    if value_or_type is None:
+        val = ioc_type_or_value
+        if "@" in val and not val.startswith("http"):
+            ioc_type = "email"
+        elif val.startswith("http://") or val.startswith("https://"):
+            ioc_type = "url"
+        else:
+            ioc_type = "ip" if any(c.isdigit() for c in val) else "domain"
+    else:
+        KNOWN_TYPES = {"ip", "ipv4", "ipv6", "domain", "url", "email", "md5", "sha1", "sha256", "cve", "btc", "asn"}
+        if ioc_type_or_value.lower() in KNOWN_TYPES:
+            ioc_type = ioc_type_or_value.lower()
+            val = value_or_type
+        else:
+            val = ioc_type_or_value
+            ioc_type = value_or_type.lower()
+
     if ioc_type == "url":
-        res = value.replace("http://", "hxxp://").replace("https://", "hxxps://")
+        res = val.replace("http://", "hxxp://").replace("https://", "hxxps://")
         return res.replace(".", "[.]")
     elif ioc_type in ("domain", "ipv4", "ipv6", "ip"):
-        return value.replace(".", "[.]")
+        return val.replace(".", "[.]")
     elif ioc_type == "email":
-        return value.replace("@", "[at]").replace(".", "[.]")
-    return value
+        return val.replace("@", "[at]").replace(".", "[.]")
+    return val
 
 def extract_iocs(text: str, source: str = "stream") -> List[Dict[str, Any]]:
     """Extracts, normalizes, and deduplicates indicators of compromise."""

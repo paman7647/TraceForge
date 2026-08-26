@@ -1,10 +1,10 @@
 [build-system]
-requires = ["setuptools>=61.0"]
+requires = ["setuptools>=61.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "traceforge-osint"
-version = "1.0.0"
+version = "1.0.1"
 description = "TraceForge — Open-Source Intelligence & Digital Forensics Platform"
 readme = "README.md"
 requires-python = ">=3.9"
@@ -37,6 +37,7 @@ classifiers = [
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
     "Topic :: Security",
     "Topic :: System :: Networking",
 ]
@@ -47,6 +48,7 @@ reporting = [
     "openpyxl>=3.1.0",
     "python-docx>=1.0.0",
 ]
+web = []
 docs = [
     "sphinx>=7.0.0",
     "myst-parser>=3.0.0",
@@ -56,6 +58,7 @@ dev = [
     "build>=1.0.0",
     "twine>=5.0.0",
     "pytest>=7.0.0",
+    "wheel>=0.40.0",
 ]
 all = [
     "openpyxl>=3.1.0",
@@ -65,6 +68,8 @@ all = [
     "sphinx-rtd-theme>=2.0.0",
     "build>=1.0.0",
     "twine>=5.0.0",
+    "pytest>=7.0.0",
+    "wheel>=0.40.0",
 ]
 
 [project.urls]
@@ -82,4 +87,9 @@ where = ["."]
 include = ["traceforge*"]
 
 [tool.setuptools.package-data]
-traceforge = ["data/*", "data/tools.tsv", "data/VERSION"]
+traceforge = [
+    "data/*",
+    "web/static/*",
+    "web/static/js/*",
+    "web/static/css/*",
+]

@@ -53,15 +53,28 @@ def get_termux_info() -> Dict[str, Any]:
         "widget_available": shortcuts_dir.is_dir(),
     }
 
-def detect_platform() -> Dict[str, str]:
-    """Detects OS type, distribution, architecture, and Python environment."""
+def detect_platform() -> Dict[str, Any]:
+    """Detects exact operating system, distribution, architecture, and display identity."""
+    arch = platform.machine().lower()
+    if arch in ("x86_64", "amd64"):
+        norm_arch = "x86_64"
+    elif arch in ("arm64", "aarch64"):
+        norm_arch = "arm64"
+    elif "arm" in arch:
+        norm_arch = "arm"
+    else:
+        norm_arch = arch
+
     if is_termux():
         return {
             "system": "android",
             "os_name": "Termux",
             "distro": "termux",
             "version": os.environ.get("TERMUX_VERSION", "termux-env"),
-            "arch": platform.machine(),
+            "arch": norm_arch,
+            "raw_arch": arch,
+            "hardware": "Android ARM" if "arm" in norm_arch else "Android",
+            "display_name": f"Termux / Android ({norm_arch})",
             "python_version": platform.python_version(),
         }
 
@@ -69,41 +82,67 @@ def detect_platform() -> Dict[str, str]:
     os_name = "Unknown"
     distro = "unknown"
     version = "unknown"
+    hardware = "Generic"
+    display_name = f"Unknown OS ({norm_arch})"
 
     if system == "darwin":
         os_name = "macOS"
         distro = "macos"
         version = platform.mac_ver()[0]
+        hardware = "Apple Silicon" if norm_arch == "arm64" else "Intel"
+        display_name = f"macOS {hardware} ({norm_arch})"
     elif system == "linux":
         os_name = "Linux"
+        distro_name = "Linux"
         if os.path.exists("/etc/os-release"):
             try:
                 with open("/etc/os-release", "r", encoding="utf-8") as f:
                     for line in f:
                         if line.startswith("ID="):
-                            distro = line.strip().split("=")[1].strip('"')
+                            distro = line.strip().split("=")[1].strip('"').lower()
+                        elif line.startswith("NAME="):
+                            distro_name = line.strip().split("=")[1].strip('"')
                         elif line.startswith("VERSION_ID="):
                             version = line.strip().split("=")[1].strip('"')
             except Exception:
                 pass
         elif os.path.exists("/etc/debian_version"):
             distro = "debian"
+            distro_name = "Debian"
             try:
                 with open("/etc/debian_version", "r", encoding="utf-8") as f:
                     version = f.read().strip()
             except Exception:
                 pass
+
+        if distro == "kali":
+            display_name = f"Kali Linux ({norm_arch})"
+        elif distro == "ubuntu":
+            display_name = f"Ubuntu {version} ({norm_arch})"
+        elif distro == "debian":
+            display_name = f"Debian {version} ({norm_arch})"
+        elif distro == "arch":
+            display_name = f"Arch Linux ({norm_arch})"
+        elif distro == "fedora":
+            display_name = f"Fedora {version} ({norm_arch})"
+        else:
+            display_name = f"{distro_name} ({norm_arch})"
+
     elif system == "windows":
         os_name = "Windows"
         distro = "windows"
         version = platform.version()
+        display_name = f"Windows {version} ({norm_arch})"
 
     return {
         "system": system,
         "os_name": os_name,
         "distro": distro,
         "version": version,
-        "arch": platform.machine(),
+        "arch": norm_arch,
+        "raw_arch": arch,
+        "hardware": hardware,
+        "display_name": display_name,
         "python_version": platform.python_version(),
     }
 
@@ -141,6 +180,12 @@ def which_tool(tool_name: str) -> Optional[str]:
     if cargo_bin.exists() and os.access(cargo_bin, os.X_OK):
         return str(cargo_bin)
 
+    # 6. Homebrew specific locations
+    for hb_dir in ("/opt/homebrew/bin", "/usr/local/bin"):
+        hb_bin = Path(hb_dir) / tool_name
+        if hb_bin.exists() and os.access(hb_bin, os.X_OK):
+            return str(hb_bin)
+
     return None
 
 def is_tool_installed(tool_name: str) -> bool:
@@ -163,7 +208,7 @@ def get_installed_version(tool_name: str) -> Optional[str]:
         return "installed"
 
 def detect_full_environment() -> Dict[str, Any]:
-    """Inspects complete runtime toolchains, package managers, Termux status, and system resources."""
+    """Inspects complete runtime toolchains, package managers, privileges, and system resources."""
     base = detect_platform()
     termux_info = get_termux_info()
 
@@ -179,6 +224,16 @@ def detect_full_environment() -> Dict[str, Any]:
         pkg_mgr = "pacman"
     elif shutil.which("dnf"):
         pkg_mgr = "dnf"
+
+    # Privileges & Root
+    has_root = False
+    sudo_available = False
+    try:
+        if hasattr(os, "geteuid"):
+            has_root = os.geteuid() == 0
+        sudo_available = shutil.which("sudo") is not None
+    except Exception:
+        pass
 
     # Go toolchain
     go_path = shutil.which("go")
@@ -199,6 +254,9 @@ def detect_full_environment() -> Dict[str, Any]:
             rust_version = res.stdout.strip()
         except Exception:
             rust_version = "rustc (detected)"
+
+    # Python pipx
+    pipx_path = shutil.which("pipx")
 
     # Native Go engine compiled
     native_bin = which_tool("traceforge-native")
@@ -227,11 +285,15 @@ def detect_full_environment() -> Dict[str, Any]:
         "distro": base["distro"],
         "os_version": base["version"],
         "arch": base["arch"],
+        "hardware": base["hardware"],
+        "display_name": base["display_name"],
         "python_version": base["python_version"],
         "is_termux": termux_info["is_termux"],
         "termux": termux_info,
         "in_venv": sys.prefix != sys.base_prefix,
-        "pipx_available": shutil.which("pipx") is not None,
+        "has_root": has_root,
+        "sudo_available": sudo_available,
+        "pipx_available": pipx_path is not None,
         "pkg_manager": pkg_mgr,
         "go_available": go_path is not None,
         "go_version": go_version,

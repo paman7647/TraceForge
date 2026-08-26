@@ -45,10 +45,13 @@ traceforge profile
 traceforge profile python-go
 ```
 
-### `traceforge config <list|get|set>`
-Inspect or modify configuration keys and fast-path overrides.
+### `traceforge config <list|get|set|paths>`
+Inspect or modify configuration keys, fast-path overrides, and storage paths.
 
 ```bash
+# Display user data and workspace paths
+traceforge config paths
+
 # List all config keys
 traceforge config list
 

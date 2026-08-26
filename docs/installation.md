@@ -1,6 +1,6 @@
 # Installation & Setup
 
-This guide explains how to install TraceForge, set up external package dependencies, and configure your runtime environment.
+This guide explains how to install TraceForge, set up external package dependencies, configure optional extras, and verify your runtime environment.
 
 ---
 
@@ -14,86 +14,127 @@ This guide explains how to install TraceForge, set up external package dependenc
 
 ---
 
-## 2. Standard Installation (Recommended)
+## 2. One-Liner Quick Install (`curl`)
 
-TraceForge provides an automated installer (`install_all.sh`) that provisions system packages, sets up isolated Python tool virtualenvs via `pipx`, and optionally compiles Go helpers.
+Install TraceForge with a single terminal command:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/paman7647/TraceForge/master/scripts/bootstrap.sh | bash
+```
+
+Or pass installation profiles directly:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/paman7647/TraceForge/master/scripts/bootstrap.sh | bash -s -- --profile recommended
+```
+
+---
+
+## 3. Global Installation via `pip`
+
+TraceForge core has **zero required external Python dependencies** (100% standard library).
+
+```bash
+# Core CLI and localhost Web Console
+pip install traceforge-osint
+
+# Optional Document & Spreadsheet Reporting (Excel / Word)
+pip install "traceforge-osint[reporting]"
+
+# Optional Complete Package (Reporting + Documentation + Dev Tools)
+pip install "traceforge-osint[all]"
+```
+
+Verify your installation from any directory:
+
+```bash
+traceforge --version
+traceforge doctor
+traceforge config paths
+```
+
+---
+
+## 4. Source Repository Installation
 
 ### Step 1: Clone Repository
 ```bash
 git clone https://github.com/paman7647/TraceForge.git
 cd TraceForge
-chmod +x install_all.sh main.sh modules/*.sh scripts/*.sh tests/*.sh
 ```
 
-### Step 2: Run the Installer
+### Step 2: Run the Setup Script
 ```bash
-# Default Recommended Setup (Python logic + Go acceleration)
-./install_all.sh --profile python-go
-```
+# Default Recommended Setup (Python logic + Go fast-paths + Core tools)
+./setup.sh --profile recommended
 
-To preview the planned installation commands without modifying your system:
-```bash
-./install_all.sh --profile python-go --dry-run
+# Preview planned installation actions without modifying the system
+./setup.sh --dry-run
+
+# Offline Setup (uses local dependencies without network updates)
+./setup.sh --offline
+
+# Automated Environment & System Repair
+./setup.sh --repair
 ```
 
 ---
 
-## 3. Runtime Installation Profiles
+## 5. Runtime Installation Profiles
 
 Select the profile that best matches your disk space and performance requirements:
 
 | Profile | Command | Disk Space | Description |
 |---|---|---|---|
-| **`python-go`** *(Default)* | `./install_all.sh --profile python-go` | ~1.2 GB | Python application logic + compiled Go fast-paths for hashing and stream triage. |
-| **`python`** | `./install_all.sh --profile python` | ~600 MB | Pure Python reference implementation; zero native compiler requirements. |
-| **`go`** | `./install_all.sh --profile go` | ~400 MB | High-throughput Go utilities; minimal Python dependencies. |
-| **`minimal`** | `./install_all.sh --profile minimal` | ~250 MB | Core built-in analysis engine and essential CLI tools only. |
-| **`full`** | `./install_all.sh --profile full` | ~3.5 GB | Complete suite including all 152 catalog utilities. |
-| **`custom`** | `./install_all.sh --profile custom` | Variable | Interactive component selection. |
+| **`recommended`** *(Default)* | `./setup.sh --profile recommended` | ~1.2 GB | Python application logic + compiled Go fast-paths for hashing and stream triage. |
+| **`minimal`** | `./setup.sh --profile minimal` | ~250 MB | Core built-in analysis engine and essential CLI tools only. |
+| **`full`** | `./setup.sh --profile full` | ~3.5 GB | Complete suite including all automatically installable and supported catalog utilities. |
+| **`custom`** | `./setup.sh --profile custom` | Variable | Interactive component selection. |
 
 ---
 
-## 4. Python Package Installation
+## 6. Native Go Fast-Path Compilation
 
-To install the TraceForge CLI package directly in a Python virtual environment:
+TraceForge provides compiled Go acceleration binaries (`bin/traceforge-native`) for high-throughput IOC extraction, file diffing, timeline normalization, and packet indexing.
 
 ```bash
-# 1. Create and activate a virtual environment
-python3 -m venv .venv
-source .venv/bin/activate
+# Compile native helper (automatically skips if source is unchanged)
+./scripts/build_native.sh
 
-# 2. Install TraceForge in editable mode
-pip install -e .
-
-# 3. Verify CLI availability
-traceforge --version
-traceforge doctor
+# Force re-compilation
+./scripts/build_native.sh --force
 ```
 
 ---
 
-## 5. macOS Details
+## 7. Diagnostics & Environment Repair
 
+TraceForge includes automated diagnostic and repair capabilities:
+
+```bash
+# Run complete system diagnostic check
+traceforge doctor
+
+# Auto-repair directories, configuration, and native helpers
+traceforge doctor --repair
+
+# Check platform-aware data, cache, config, and catalog paths
+traceforge config paths
+```
+
+---
+
+## 8. Platform Specific Details
+
+### macOS
 - **Apple Silicon (`arm64`)**: Homebrew installs binaries to `/opt/homebrew/bin`. Ensure `/opt/homebrew/bin` is in your `$PATH`.
 - **Intel (`x86_64`)**: Homebrew installs binaries to `/usr/local/bin`.
-- **Terminal Permissions (TCC)**: If analyzing files in `~/Desktop`, `~/Documents`, or `~/Downloads`, grant **Full Disk Access** to your terminal emulator (Terminal.app, iTerm2, Kitty, Alacritty) under **System Settings → Privacy & Security → Full Disk Access**.
+- **Terminal Permissions (TCC)**: If analyzing files in `~/Desktop`, `~/Documents`, or `~/Downloads`, grant **Full Disk Access** to your terminal emulator under **System Settings → Privacy & Security → Full Disk Access**.
 
----
+### Linux
+- Supported distributions: Debian 12+, Ubuntu 22.04+, Kali Linux.
+- Base packages: `git`, `python3`, `python3-venv`, `python3-pip`, `curl`, `ffmpeg`, `build-essential`.
 
-## 6. Linux Details (Debian / Ubuntu / Kali)
-
-- The installer uses `apt-get` for native tools (e.g. `tshark`, `exiftool`, `poppler-utils`).
-- Ensure your user has `sudo` privileges to install system packages.
-- On Kali Linux, many OSINT and forensics tools are already pre-installed; TraceForge detects existing binaries and avoids redundant downloads.
-
----
-
-## 7. Verifying Installation
-
-Run the environment doctor to verify your runtime and toolchain:
-
-```bash
-traceforge doctor
-# or
-./main.sh doctor
-```
+### Termux / Android
+- Run entirely in standard userland (`pkg install python golang tshark exiftool`).
+- Android shared storage: Run `termux-setup-storage` to grant access to `/sdcard`, `Downloads`, and `DCIM`.

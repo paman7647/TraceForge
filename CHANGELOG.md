@@ -1,21 +1,32 @@
 # Changelog
 
-All notable changes to TraceForge will be documented in this file.
+All notable changes to **TraceForge** are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+---
 
-### Added
-
-### Changed
+## [1.0.1] - 2026-08-26
 
 ### Fixed
+- **Web API Tool Filtering**: Corrected parameter resolution in `traceforge/web/services/tool_service.py` where `is_available_on_platform` was checked instead of `is_supported`.
+- **Manual Tool Installation**: Corrected error reporting logic in `install_catalog_tool()` to inspect `cap.get("availability") == "MANUAL_INSTALL"` rather than a missing dictionary key.
+- **Workflow Binary Consistency**: Standardized case-sensitive binary identifiers across batch workflows (`theHarvester`, `gpg`).
+
+### Added
+- **Tool Integration Depth Audit**: New `Catalog.integration_audit()` system and CLI command (`traceforge tools audit --integration`) classifying tools into `FULLY_INTEGRATED`, `RUNNABLE`, `MANUAL_ONLY`, and `UNSUPPORTED_ON_PLATFORM`.
+- **Web Integration Audit Endpoint**: Exposed `GET /api/tools/audit` route in the web console for real-time toolchain integration telemetry.
+- **Extended Module Coverage**:
+  - `traceforge/modules/image.py`: Native inspection support for `ffprobe`, `mediainfo`, `pngcheck`, `jhead`, `steghide`, `yara`, `tesseract`, and `foremost`.
+  - `traceforge/modules/documents.py`: Native parsing support for `pdfinfo`, `pdftotext`, `pdfimages`, `mutool`, `olevba`, `oleid`, `antiword`, `docx2txt`, and `mat2`.
+  - `traceforge/modules/network.py`: PCAP telemetry enhancements using `capinfos`, `tcpdump` fallback inspection, and `zeek` connection log extraction.
+- **Extended Predefined Batch Workflows**: Expanded automated tool chains in `traceforge/batch.py` for image, network, domain, and document investigation routines.
+- **Automated Regression Suite**: Expanded unit tests in `tests/test_catalog_tools.py` covering tool dictionary invariants, capability lookups, integration audit counts, and CLI `--integration` flags.
 
 ### Security
-
-### Documentation
+- **Secure Secret Handling in Release Pipeline**: Release tokens are loaded dynamically from environment variables or masked interactive prompts (`getpass`), preventing credential leaks in terminal history and logs.
+- **Ignored Release and Test Artifacts**: Hardened `.gitignore` to strictly exclude `up.py`, `.env`, build wheels, release ZIPs, and local test artifacts from public source control.
 
 ---
 
@@ -43,3 +54,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Documentation
 - Architectural guides for runtime profiles (`docs/RUNTIME_PROFILES.md`), first-party tools (`docs/FIRST_PARTY_TOOLS.md`), Termux deployment (`docs/platforms/termux.md`), branching model (`docs/BRANCHING.md`), bug reporting (`docs/BUG_REPORTING.md`), legal risk assessment (`docs/LEGAL_RISK_ASSESSMENT.md`), and third-party notices (`THIRD_PARTY_NOTICES.md`).
+
+---
+
+[1.0.1]: https://github.com/paman7647/TraceForge/compare/v1.0.0...v1.0.1
+[1.0.0]: https://github.com/paman7647/TraceForge/releases/tag/v1.0.0

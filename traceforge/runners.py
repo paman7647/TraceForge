@@ -43,6 +43,48 @@ class ToolRunner:
     """Safely executes external native binaries using structured parameter arrays."""
 
     @staticmethod
+    def run_catalog_tool(
+        tool_query: str,
+        args: Optional[List[str]] = None,
+        cwd: Optional[str] = None,
+        timeout: int = 60,
+        env: Optional[Dict[str, str]] = None,
+        input_data: Optional[Union[str, bytes]] = None,
+    ) -> ToolExecutionResult:
+        """Validates tool against catalog registry and executes safely with structured arguments."""
+        from traceforge.catalog import Catalog
+        cat = Catalog()
+        tool_rec = cat.find_tool(tool_query)
+        if not tool_rec:
+            return ToolExecutionResult(
+                command=[tool_query] + (args or []),
+                exit_code=127,
+                stdout="",
+                stderr=f"Tool '{tool_query}' is not a registered TraceForge catalog utility.",
+                duration_seconds=0.0,
+                executed_at=datetime.datetime.now(datetime.timezone.utc).isoformat(),
+            )
+
+        if not tool_rec.is_installed:
+            return ToolExecutionResult(
+                command=[tool_rec.binary] + (args or []),
+                exit_code=127,
+                stdout="",
+                stderr=f"Tool '{tool_rec.name}' ({tool_rec.binary}) is registered in the catalog but not installed locally. Run 'traceforge tools install {tool_rec.binary}' to install.",
+                duration_seconds=0.0,
+                executed_at=datetime.datetime.now(datetime.timezone.utc).isoformat(),
+            )
+
+        return ToolRunner.run(
+            binary_name=tool_rec.binary,
+            args=args,
+            cwd=cwd,
+            timeout=timeout,
+            env=env,
+            input_data=input_data,
+        )
+
+    @staticmethod
     def run(
         binary_name: str,
         args: Optional[List[str]] = None,

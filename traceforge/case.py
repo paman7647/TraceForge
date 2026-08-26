@@ -8,6 +8,7 @@ from typing import Any, Dict, List, Optional, Union
 
 from traceforge.config import get_workspace_dir, load_config, save_config
 
+
 def hash_file(file_path: Path) -> Dict[str, str]:
     """Calculates SHA-256 and MD5 checksums for a given file."""
     sha256 = hashlib.sha256()
@@ -20,6 +21,7 @@ def hash_file(file_path: Path) -> Dict[str, str]:
         "sha256": sha256.hexdigest(),
         "md5": md5.hexdigest(),
     }
+
 
 class Case:
     """Manages an active forensic investigation case workspace."""
@@ -71,7 +73,6 @@ class Case:
             self.data["chain_of_custody"] = []
         self.data["chain_of_custody"].append(entry)
 
-        # Also append to custody log file
         log_file = self.logs_dir / "chain_of_custody.log"
         with open(log_file, "a", encoding="utf-8") as f:
             f.write(f"[{ts}] [{operator}] {action} - {details}\n")
@@ -82,7 +83,7 @@ class Case:
         source_path: Union[str, Path],
         description: str = "",
         source_device: str = "Target System",
-        analyst: str = "Analyst"
+        analyst: str = "Analyst",
     ) -> Dict[str, Any]:
         src = Path(source_path).resolve()
         if not src.exists() or not src.is_file():
@@ -93,9 +94,8 @@ class Case:
         dest_filename = f"{evid_id}_{src.name}"
         dest_path = self.evidence_dir / dest_filename
 
-        # Copy evidence immutably
         shutil.copy2(src, dest_path)
-        os.chmod(dest_path, 0o444)  # Make read-only
+        os.chmod(dest_path, 0o444)
 
         hashes = hash_file(dest_path)
         size_bytes = dest_path.stat().st_size
@@ -124,13 +124,18 @@ class Case:
     def add_finding(
         self,
         title: str,
+        description: str = "",
         category: str = "General",
         severity: str = "medium",
         status: str = "open",
-        description: str = "",
         evidence_refs: Optional[List[str]] = None,
-        analyst: str = "Analyst"
+        analyst: str = "Analyst",
+        **kwargs: Any,
     ) -> Dict[str, Any]:
+        # Handle positional arg flexibility if callers pass (title, details/category)
+        if "details" in kwargs and not description:
+            description = kwargs["details"]
+
         findings = self.data.setdefault("findings", [])
         find_id = f"FIND-{len(findings) + 1:03d}"
         ts = datetime.datetime.now(datetime.timezone.utc).isoformat()
@@ -139,8 +144,8 @@ class Case:
             "id": find_id,
             "title": title,
             "category": category,
-            "severity": severity.lower(),
-            "status": status.lower(),
+            "severity": severity,
+            "status": status,
             "description": description,
             "evidence": evidence_refs or [],
             "created_at": ts,
@@ -152,21 +157,43 @@ class Case:
 
     def add_ioc(
         self,
-        value: str,
-        ioc_type: str = "domain",
+        value_or_type: str = "",
+        ioc_type_or_value: str = "",
+        value: Optional[str] = None,
+        ioc_type: Optional[str] = None,
         context: str = "",
         source: str = "Manual Record",
         confidence: str = "high",
-        analyst: str = "Analyst"
+        analyst: str = "Analyst",
+        **kwargs: Any,
     ) -> Dict[str, Any]:
+        if value is not None:
+            actual_value = value.strip()
+            actual_type = (ioc_type or value_or_type or "domain").lower().strip()
+        else:
+            KNOWN_TYPES = {"ip", "ipv4", "ipv6", "domain", "url", "email", "md5", "sha1", "sha256", "cve", "btc", "asn"}
+            first = value_or_type.strip()
+            second = ioc_type_or_value.strip()
+
+            if first.lower() in KNOWN_TYPES and second.lower() not in KNOWN_TYPES:
+                actual_type = first.lower()
+                actual_value = second
+            else:
+                actual_value = first
+                actual_type = second.lower() if second.lower() in KNOWN_TYPES else "domain"
+
+        from traceforge.tools import defang_ioc
+        defanged = defang_ioc(actual_type, actual_value)
+
         iocs = self.data.setdefault("iocs", [])
         ioc_id = f"IOC-{len(iocs) + 1:03d}"
         ts = datetime.datetime.now(datetime.timezone.utc).isoformat()
 
         rec = {
             "id": ioc_id,
-            "type": ioc_type.lower(),
-            "value": value.strip(),
+            "type": actual_type,
+            "value": actual_value,
+            "defanged": defanged,
             "context": context,
             "source": source,
             "confidence": confidence.lower(),
@@ -174,27 +201,45 @@ class Case:
             "last_seen": ts,
         }
         iocs.append(rec)
-        self.log_action("ADD_IOC", f"Registered observable {ioc_id} ({ioc_type}: {value})", analyst)
+        self.log_action("ADD_IOC", f"Registered observable {ioc_id} ({actual_type}: {actual_value})", analyst)
         return rec
 
     def add_event(
         self,
-        timestamp_str: str,
-        title: str,
+        title_or_ts: str,
+        title_or_desc: str = "",
         description: str = "",
         source: str = "Manual Record",
         severity: str = "info",
         evidence_ref: str = "",
-        analyst: str = "Analyst"
+        analyst: str = "Analyst",
+        **kwargs: Any,
     ) -> Dict[str, Any]:
         events = self.data.setdefault("timeline", [])
         evt_id = f"EVT-{len(events) + 1:04d}"
+        now_ts = datetime.datetime.now(datetime.timezone.utc).isoformat()
+
+        # Handle signatures: (timestamp, title, desc...) or (title, desc...)
+        if title_or_desc:
+            # First could be timestamp or title
+            if any(c in title_or_ts for c in ("-", ":", "T", "Z")) and len(title_or_ts) >= 10:
+                ts = title_or_ts
+                title = title_or_desc
+                desc = description
+            else:
+                ts = now_ts
+                title = title_or_ts
+                desc = title_or_desc
+        else:
+            ts = now_ts
+            title = title_or_ts
+            desc = description
 
         rec = {
             "id": evt_id,
-            "timestamp": timestamp_str,
+            "timestamp": ts,
             "title": title,
-            "description": description,
+            "description": desc,
             "source": source,
             "severity": severity.lower(),
             "evidence_ref": evidence_ref,
@@ -232,6 +277,9 @@ class Case:
             "total_timeline_events": len(timeline),
         }
 
+    summary = get_summary
+
+
 def create_case(name: str = "Forensic Investigation", analyst: str = "Analyst", case_id: Optional[str] = None) -> Case:
     """Initializes a new case directory and case.json."""
     if not case_id:
@@ -258,12 +306,15 @@ def create_case(name: str = "Forensic Investigation", analyst: str = "Analyst", 
     case.save()
     case.log_action("CREATE_CASE", f"Initialized new case: {name} ({case_id})", analyst)
 
-    # Set as active case
     cfg = load_config()
     cfg["active_case"] = case_id
     save_config(cfg)
 
     return case
+
+
+Case.create = staticmethod(create_case)
+
 
 def get_active_case() -> Optional[Case]:
     cfg = load_config()
@@ -274,6 +325,7 @@ def get_active_case() -> Optional[Case]:
             return c
     return None
 
+
 def set_active_case(case_id: str) -> bool:
     c = Case(case_id)
     if c.exists():
@@ -282,6 +334,7 @@ def set_active_case(case_id: str) -> bool:
         save_config(cfg)
         return True
     return False
+
 
 def list_all_cases() -> List[Dict[str, Any]]:
     ws = get_workspace_dir()

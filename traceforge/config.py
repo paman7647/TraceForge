@@ -1,5 +1,6 @@
 import json
 import os
+import sys
 from pathlib import Path
 from typing import Any, Dict, Optional, Tuple
 
@@ -14,7 +15,7 @@ VALID_PROFILES: Tuple[str, ...] = (
 )
 
 DEFAULT_CONFIG: Dict[str, Any] = {
-    "version": "1.0.0",
+    "version": "1.0.1",
     "workspace_dir": "workspace",
     "active_case": "",
     "default_format": "html",
@@ -79,13 +80,71 @@ def save_config(cfg: Dict[str, Any]) -> None:
     except Exception:
         pass
 
+def get_user_data_dir() -> Path:
+    """Returns the platform-aware user data directory (cases, evidence, exports)."""
+    # 1. Environment override
+    env_dir = os.environ.get("TRACEFORGE_DATA_DIR")
+    if env_dir:
+        p = Path(env_dir)
+        p.mkdir(parents=True, exist_ok=True)
+        return p
+
+    # 2. Project local override if running in git repo workspace
+    src_path = Path(__file__).resolve().parent.parent
+    if (src_path / ".git").exists() or (src_path / "catalog" / "tools.tsv").exists():
+        ws = src_path / "workspace"
+        ws.mkdir(parents=True, exist_ok=True)
+        return ws
+
+    # 3. System XDG / macOS standard data directory
+    xdg_data = os.environ.get("XDG_DATA_HOME")
+    if xdg_data:
+        p = Path(xdg_data) / "traceforge"
+    elif sys.platform == "darwin":
+        p = Path.home() / "Library" / "Application Support" / "TraceForge"
+    else:
+        p = Path.home() / ".local" / "share" / "traceforge"
+
+    p.mkdir(parents=True, exist_ok=True)
+    return p
+
 def get_workspace_dir() -> Path:
     cfg = load_config()
-    ws_path = Path(cfg.get("workspace_dir", "workspace"))
-    if not ws_path.is_absolute():
-        ws_path = get_project_root() / ws_path
+    configured = cfg.get("workspace_dir", "")
+    if configured:
+        ws_path = Path(configured)
+        if not ws_path.is_absolute():
+            user_data = get_user_data_dir()
+            if user_data.name == ws_path.name:
+                ws_path = user_data
+            else:
+                ws_path = user_data / ws_path
+    else:
+        ws_path = get_user_data_dir()
     ws_path.mkdir(parents=True, exist_ok=True)
     return ws_path
+
+def get_cache_dir() -> Path:
+    """Returns the platform-aware application cache directory."""
+    env_cache = os.environ.get("TRACEFORGE_CACHE_DIR")
+    if env_cache:
+        p = Path(env_cache)
+    else:
+        xdg_cache = os.environ.get("XDG_CACHE_HOME")
+        if xdg_cache:
+            p = Path(xdg_cache) / "traceforge"
+        elif sys.platform == "darwin":
+            p = Path.home() / "Library" / "Caches" / "TraceForge"
+        else:
+            p = Path.home() / ".cache" / "traceforge"
+    p.mkdir(parents=True, exist_ok=True)
+    return p
+
+def get_logs_dir() -> Path:
+    """Returns the user logs directory."""
+    p = get_user_data_dir() / "logs"
+    p.mkdir(parents=True, exist_ok=True)
+    return p
 
 def get_runtime_profile() -> str:
     """Returns the active runtime profile."""

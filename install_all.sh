@@ -18,6 +18,7 @@ PROFILE="python-go"
 PROFILE_EXPLICIT=0
 DRY_RUN=0
 NON_INTERACTIVE=0
+OFFLINE_MODE=0
 
 usage() {
     cat << EOF
@@ -29,6 +30,7 @@ Usage:
 Options:
   --profile <name>       Runtime profile: minimal | python | go | python-go | full | custom
   --dry-run              Simulate provisioning without modifying system packages
+  --offline              Offline mode: skip package manager updates and network downloads
   --non-interactive, -y  Run in non-interactive batch mode
   --help, -h             Show this help message
 
@@ -52,6 +54,10 @@ while [[ $# -gt 0 ]]; do
             ;;
         --dry-run)
             DRY_RUN=1
+            shift
+            ;;
+        --offline)
+            OFFLINE_MODE=1
             shift
             ;;
         --non-interactive|-y)
@@ -193,8 +199,8 @@ provision_native_stack() {
 
     if [[ "$OS_TYPE" == "termux" ]]; then
         ensure_termux_storage || true
-        if [[ "$DRY_RUN" -eq 1 ]]; then
-            log_info "[DRY-RUN] Termux 'pkg' packages to install (${#termux_packages[@]} items):"
+        if [[ "$DRY_RUN" -eq 1 || "$OFFLINE_MODE" -eq 1 ]]; then
+            log_info "Termux 'pkg' packages list (${#termux_packages[@]} items):"
             for pkg in "${termux_packages[@]}"; do
                 printf '  - %-20s [Termux: pkg install %s]\n' "$pkg" "$pkg"
             done
@@ -205,8 +211,8 @@ provision_native_stack() {
             done
         fi
     elif [[ "$OS_TYPE" == "darwin" ]]; then
-        if [[ "$DRY_RUN" -eq 1 ]]; then
-            log_info "[DRY-RUN] macOS Homebrew packages to install (${#mac_formulas[@]} items):"
+        if [[ "$DRY_RUN" -eq 1 || "$OFFLINE_MODE" -eq 1 ]]; then
+            log_info "macOS Homebrew packages list (${#mac_formulas[@]} items):"
             for formula in "${mac_formulas[@]}"; do
                 printf '  - %-20s [Homebrew: brew install %s]\n' "$formula" "$formula"
             done
@@ -217,8 +223,8 @@ provision_native_stack() {
             done
         fi
     elif [[ "$OS_TYPE" == "linux" ]]; then
-        if [[ "$DRY_RUN" -eq 1 ]]; then
-            log_info "[DRY-RUN] Linux APT packages to install (${#linux_packages[@]} items):"
+        if [[ "$DRY_RUN" -eq 1 || "$OFFLINE_MODE" -eq 1 ]]; then
+            log_info "Linux APT packages list (${#linux_packages[@]} items):"
             for pkg in "${linux_packages[@]}"; do
                 printf '  - %-20s [APT: apt-get install -y %s]\n' "$pkg" "$pkg"
             done
@@ -258,8 +264,8 @@ provision_python_stack() {
         python_apps=("${py_core[@]}" "${py_rec[@]}")
     fi
 
-    if [[ "$DRY_RUN" -eq 1 ]]; then
-        log_info "[DRY-RUN] Python applications via pipx (${#python_apps[@]} items):"
+    if [[ "$DRY_RUN" -eq 1 || "$OFFLINE_MODE" -eq 1 ]]; then
+        log_info "Python applications via pipx (${#python_apps[@]} items):"
         for app_spec in "${python_apps[@]}"; do
             local pkg="${app_spec%%:*}"
             local bin="${app_spec#*:}"
@@ -296,7 +302,6 @@ provision_go_stack() {
         "gau:github.com/lc/gau/v2/cmd/gau@latest"
         "katana:github.com/projectdiscovery/katana/cmd/katana@latest"
         "tlsx:github.com/projectdiscovery/tlsx/cmd/tlsx@latest"
-        "katana:github.com/projectdiscovery/katana/cmd/katana@latest"
         "chaos-client:github.com/projectdiscovery/chaos-client/cmd/chaos@latest"
     )
 
@@ -307,8 +312,8 @@ provision_go_stack() {
         )
     fi
 
-    if [[ "$DRY_RUN" -eq 1 ]]; then
-        log_info "[DRY-RUN] Go tools to install via 'go install' (${#go_tools[@]} items):"
+    if [[ "$DRY_RUN" -eq 1 || "$OFFLINE_MODE" -eq 1 ]]; then
+        log_info "Go tools to install via 'go install' (${#go_tools[@]} items):"
         for tool_spec in "${go_tools[@]}"; do
             local bin="${tool_spec%%:*}"
             local mod="${tool_spec#*:}"
@@ -334,8 +339,8 @@ provision_full_stack_extras() {
 
     # Ruby Gems
     local -a ruby_gems=("zsteg" "wpscan")
-    if [[ "$DRY_RUN" -eq 1 ]]; then
-        log_info "[DRY-RUN] Ruby Gems (${#ruby_gems[@]} items):"
+    if [[ "$DRY_RUN" -eq 1 || "$OFFLINE_MODE" -eq 1 ]]; then
+        log_info "Ruby Gems (${#ruby_gems[@]} items):"
         for g in "${ruby_gems[@]}"; do
             printf '  - %-20s [gem install %s]\n' "$g" "$g"
         done
@@ -348,8 +353,8 @@ provision_full_stack_extras() {
 
     # Cargo Crates
     local -a cargo_crates=("feroxbuster" "ripasso-cursive" "sniffglue")
-    if [[ "$DRY_RUN" -eq 1 ]]; then
-        log_info "[DRY-RUN] Rust / Cargo crates (${#cargo_crates[@]} items):"
+    if [[ "$DRY_RUN" -eq 1 || "$OFFLINE_MODE" -eq 1 ]]; then
+        log_info "Rust / Cargo crates (${#cargo_crates[@]} items):"
         for c in "${cargo_crates[@]}"; do
             printf '  - %-20s [cargo install %s]\n' "$c" "$c"
         done

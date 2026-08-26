@@ -1,0 +1,19 @@
+include README.md
+include LICENSE
+include NOTICE
+include VERSION
+include CHANGELOG.md
+include RELEASE_NOTES.md
+include pyproject.toml
+include requirements.txt
+include requirements-dev.txt
+
+recursive-include catalog tools.tsv TOOLS.md README.md
+recursive-include traceforge/data *
+recursive-include traceforge/web/static *
+recursive-include docs *
+recursive-include tests *.py
+
+global-exclude __pycache__
+global-exclude *.py[cod]
+global-exclude *.DS_Store

@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="system">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TraceForge — Digital Forensics & Threat Intelligence Console</title>
+  <link rel="stylesheet" href="/static/style.css">
+  <script>
+    // Immediately apply saved theme before render to avoid flash
+    (function() {
+      const savedTheme = localStorage.getItem("traceforge_theme") || "system";
+      document.documentElement.setAttribute("data-theme", savedTheme);
+    })();
+  </script>
+</head>
+<body>
+  <div class="app-container">
+    <!-- Sidebar Navigation Rail -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <div class="brand-block">
+          <span class="brand-title">TRACEFORGE</span>
+          <span class="brand-version" id="appVersion">v1.0.1</span>
+        </div>
+      </div>
+
+      <nav class="sidebar-nav">
+        <!-- WORKSPACE -->
+        <div class="nav-section-title">Workspace</div>
+        <ul class="nav-list">
+          <li class="nav-item">
+            <a href="#dashboard" class="nav-link active" data-route="dashboard">
+              <svg class="nav-icon" viewBox="0 0 24 24"><rect width="7" height="7" x="3" y="3" rx="1"/><rect width="7" height="7" x="14" y="3" rx="1"/><rect width="7" height="7" x="14" y="14" rx="1"/><rect width="7" height="7" x="3" y="14" rx="1"/></svg>
+              <span>Dashboard</span>
+            </a>
+          </li>
+          <li class="nav-item">
+            <a href="#cases" class="nav-link" data-route="cases">
+              <svg class="nav-icon" viewBox="0 0 24 24"><path d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.93a2 2 0 0 1-1.66-.9l-.82-1.2A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13c0 1.1.9 2 2 2Z"/></svg>
+              <span>Cases</span>
+            </a>
+          </li>
+          <li class="nav-item">
+            <a href="#evidence" class="nav-link" data-route="evidence">
+              <svg class="nav-icon" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/></svg>
+              <span>Evidence</span>
+            </a>
+          </li>
+        </ul>
+
+        <!-- INVESTIGATION -->
+        <div class="nav-section-title">Investigation</div>
+        <ul class="nav-list">
+          <li class="nav-item">
+            <a href="#investigations" class="nav-link" data-route="investigations">
+              <svg class="nav-icon" viewBox="0 0 24 24"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>
+              <span>Modules</span>
+            </a>
+          </li>
+          <li class="nav-item">
+            <a href="#batch" class="nav-link" data-route="batch">
+              <svg class="nav-icon" viewBox="0 0 24 24"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>
+              <span>Batch Suite</span>
+            </a>
+          </li>
+          <li class="nav-item">
+            <a href="#tools" class="nav-link" data-route="tools">
+              <svg class="nav-icon" viewBox="0 0 24 24"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
+              <span>Tools</span>
+            </a>
+          </li>
+        </ul>
+
+        <!-- ANALYSIS -->
+        <div class="nav-section-title">Analysis</div>
+        <ul class="nav-list">
+          <li class="nav-item">
+            <a href="#iocs" class="nav-link" data-route="iocs">
+              <svg class="nav-icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>
+              <span>IOCs</span>
+            </a>
+          </li>
+          <li class="nav-item">
+            <a href="#findings" class="nav-link" data-route="findings">
+              <svg class="nav-icon" viewBox="0 0 24 24"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg>
+              <span>Findings</span>
+            </a>
+          </li>
+          <li class="nav-item">
+            <a href="#timeline" class="nav-link" data-route="timeline">
+              <svg class="nav-icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+              <span>Timeline</span>
+            </a>
+          </li>
+          <li class="nav-item">
+            <a href="#assets" class="nav-link" data-route="assets">
+              <svg class="nav-icon" viewBox="0 0 24 24"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+              <span>Assets</span>
+            </a>
+          </li>
+        </ul>
+
+        <!-- OUTPUT -->
+        <div class="nav-section-title">Output</div>
+        <ul class="nav-list">
+          <li class="nav-item">
+            <a href="#reports" class="nav-link" data-route="reports">
+              <svg class="nav-icon" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+              <span>Reports</span>
+            </a>
+          </li>
+          <li class="nav-item">
+            <a href="#catalog" class="nav-link" data-route="catalog">
+              <svg class="nav-icon" viewBox="0 0 24 24"><path d="m7.5 4.27 9 5.15"/><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg>
+              <span>Catalog</span>
+            </a>
+          </li>
+        </ul>
+
+        <!-- SYSTEM -->
+        <div class="nav-section-title">System</div>
+        <ul class="nav-list">
+          <li class="nav-item">
+            <a href="#runtime" class="nav-link" data-route="runtime">
+              <svg class="nav-icon" viewBox="0 0 24 24"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M9 3v18"/><path d="M15 3v18"/><path d="M3 9h18"/><path d="M3 15h18"/></svg>
+              <span>Runtime</span>
+            </a>
+          </li>
+          <li class="nav-item">
+            <a href="#doctor" class="nav-link" data-route="doctor">
+              <svg class="nav-icon" viewBox="0 0 24 24"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+              <span>Doctor</span>
+            </a>
+          </li>
+        </ul>
+      </nav>
+
+      <div class="sidebar-footer">
+        <div class="meta-row">
+          <span class="meta-lbl">Platform</span>
+          <span class="meta-val" id="sidebarPlatform">macOS (arm64)</span>
+        </div>
+        <div class="meta-row">
+          <span class="meta-lbl">Engine</span>
+          <span class="meta-val" id="sidebarProfile">PYTHON + GO</span>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main Content Stage -->
+    <main class="main-wrapper">
+      <header class="top-header">
+        <div class="header-left">
+          <button class="mobile-toggle" id="btnToggleSidebar" aria-label="Toggle navigation">
+            <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+          </button>
+          <div class="header-titles">
+            <h1 class="page-title" id="pageHeading">Dashboard</h1>
+            <span class="page-subtitle" id="pageSubtitle">Live workspace overview and core toolchain diagnostics</span>
+          </div>
+        </div>
+
+        <div class="header-right">
+          <div class="case-indicator" id="headerCasePill" title="Active Case Workspace">
+            <span class="case-tag">CASE</span>
+            <span class="case-id mono" id="headerActiveCase">None</span>
+          </div>
+
+          <!-- Theme Selector -->
+          <div class="theme-segmented" role="radiogroup" aria-label="Theme selector">
+            <button type="button" class="theme-btn" data-theme-val="light" title="Light Theme" aria-label="Light theme">
+              <svg viewBox="0 0 24 24" width="13" height="13" stroke="currentColor" stroke-width="2" fill="none"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg>
+              <span>Light</span>
+            </button>
+            <button type="button" class="theme-btn" data-theme-val="system" title="System Theme" aria-label="System theme">
+              <svg viewBox="0 0 24 24" width="13" height="13" stroke="currentColor" stroke-width="2" fill="none"><rect width="20" height="14" x="2" y="3" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+              <span>System</span>
+            </button>
+            <button type="button" class="theme-btn" data-theme-val="dark" title="Dark Theme" aria-label="Dark theme">
+              <svg viewBox="0 0 24 24" width="13" height="13" stroke="currentColor" stroke-width="2" fill="none"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
+              <span>Dark</span>
+            </button>
+          </div>
+
+          <button class="btn btn-sm btn-subtle" id="btnRefresh" title="Refresh Case & System State">
+            <svg viewBox="0 0 24 24" width="13" height="13" stroke="currentColor" stroke-width="2" fill="none"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg>
+            <span>Refresh</span>
+          </button>
+        </div>
+      </header>
+
+      <section class="content-viewport" id="appViewport">
+        <div class="loading-state">
+          <div class="spinner"></div>
+          <span>Loading TraceForge Workspace...</span>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script type="module" src="/static/js/app.js"></script>
+</body>
+</html>

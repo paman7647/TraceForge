@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# shellcheck disable=SC2034,SC2155,SC2206,SC2016,SC1090,SC1091,SC2295
+# shellcheck disable=SC2034,SC2155,SC2206,SC2016,SC1090,SC1091,SC2295,SC2119,SC2120
 # =============================================================================
 # TraceForge — lib/doctor.sh
 # Pure-Bash System, Environment, Toolchain, and Workspace Diagnostic Engine
@@ -16,6 +16,25 @@ source "$SCRIPT_DIR/common.sh"
 source "$SCRIPT_DIR/platform.sh"
 
 run_system_diagnostics() {
+    local repair_mode=0
+    for arg in "$@"; do
+        if [[ "$arg" == "--repair" || "$arg" == "-r" ]]; then
+            repair_mode=1
+        fi
+    done
+
+    if [[ "$repair_mode" -eq 1 ]]; then
+        printf '%b[+] Initiating Environment & Toolchain Repair...%b\n' "$C_CYAN" "$C_RESET"
+        mkdir -p "$ROOT_DIR/workspace" "$ROOT_DIR/bin" "$ROOT_DIR/docs" "$ROOT_DIR/catalog" 2>/dev/null || true
+        if [[ -f "$ROOT_DIR/scripts/build_native.sh" ]]; then
+            bash "$ROOT_DIR/scripts/build_native.sh" 2>/dev/null || true
+        fi
+        if [[ -x "$ROOT_DIR/.venv/bin/python" ]]; then
+            "$ROOT_DIR/.venv/bin/python" -m traceforge doctor --repair 2>/dev/null || true
+        fi
+        printf '%b[✓] Environment repair actions finished.%b\n\n' "$C_GREEN" "$C_RESET"
+    fi
+
     local ok_count=0
     local warn_count=0
     local err_count=0

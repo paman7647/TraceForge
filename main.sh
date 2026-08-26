@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# shellcheck disable=SC2034,SC2155,SC2206,SC2016,SC1090,SC1091,SC2295
+# shellcheck disable=SC2034,SC2155,SC2206,SC2016,SC1090,SC1091,SC2295,SC2119,SC2120
 # =============================================================================
 # TraceForge — Operator Command Center & Interactive Console
 # Lead Architect & Maintainer: Aman Kumar Pandey
@@ -615,6 +615,138 @@ menu_investigation_modules() {
             b|B) return 0 ;;
             q|Q) log_info "Exiting TraceForge."; exit 0 ;;
             *) log_warn "Invalid selection. Choose 1-7, B, or Q."; pause_menu ;;
+        esac
+    done
+}
+
+# =============================================================================
+# BATCH INVESTIGATION & CUSTOM TOOL SETS
+# =============================================================================
+menu_batch_investigation() {
+    while true; do
+        ensure_active_case
+        print_banner "Batch Investigation & Custom Tool Sets Engine"
+        printf '  Active Case : %b%s%b\n\n' "$C_GREEN" "$CURRENT_ACTIVE_CASE" "$C_RESET"
+
+        printf '  %b[1]%b Run Custom Tool Set Against Target    (Select 1 or multiple catalog tools)\n' "$C_BOLD" "$C_RESET"
+        printf '  %b[2]%b Run Single Tool Against Target         (Single tool execution with input checks)\n' "$C_BOLD" "$C_RESET"
+        printf '  %b[3]%b Run Predefined Workflow Set            (Image, Network, Domain, Email, Docs, OPSEC)\n' "$C_BOLD" "$C_RESET"
+        printf '  %b[4]%b Preview Pre-Flight Plan for Target     (Inspect compatibility, platforms, and probes)\n' "$C_BOLD" "$C_RESET"
+        printf '  %b[5]%b Manage Saved Tool Set Profiles         (List, save, or delete custom profile collections)\n' "$C_BOLD" "$C_RESET"
+        printf '  %b[6]%b Batch Execution History                (Review past execution logs and metrics)\n' "$C_BOLD" "$C_RESET"
+        printf '  %b[B]%b Back to Main Menu\n' "$C_BOLD" "$C_RESET"
+        printf '  %b[Q]%b Quit\n\n' "$C_BOLD" "$C_RESET"
+
+        local b_sel
+        b_sel="$(read_input "Select Batch Option [1-6]" "")"
+        case "$b_sel" in
+            1)
+                print_banner "Run Custom Tool Set"
+                local target tools parallel_flag
+                target="$(read_input "Target observable, specimen file path, or domain" "")"
+                [[ -z "$target" ]] && { log_warn "Target required."; pause_menu; continue; }
+                tools="$(read_input "Comma-separated tools (e.g. exiftool,strings,binwalk)" "")"
+                [[ -z "$tools" ]] && { log_warn "Tools list required."; pause_menu; continue; }
+                local p_mode="$(read_input "Execution mode: (1) Sequential [default], (2) Parallel" "1")"
+                local p_arg=""
+                [[ "$p_mode" == "2" || "$p_mode" == "parallel" ]] && p_arg="--parallel"
+
+                log_step "Launching batch execution against '$target'..."
+                python3 -m traceforge.cli batch run "$target" --tools "$tools" $p_arg --case "$CURRENT_ACTIVE_CASE" --report markdown
+                pause_menu
+                ;;
+            2)
+                print_banner "Run Single Tool"
+                local target tool
+                target="$(read_input "Target observable or file path" "")"
+                [[ -z "$target" ]] && { log_warn "Target required."; pause_menu; continue; }
+                tool="$(read_input "Tool binary name (e.g. exiftool, whois, tshark)" "")"
+                [[ -z "$tool" ]] && { log_warn "Tool name required."; pause_menu; continue; }
+
+                log_step "Launching tool '$tool' on target '$target'..."
+                python3 -m traceforge.cli batch run "$target" --tools "$tool" --case "$CURRENT_ACTIVE_CASE"
+                pause_menu
+                ;;
+            3)
+                print_banner "Run Predefined Workflow Set"
+                printf 'Available Workflows:\n'
+                printf '  1) image     (exiftool, binwalk, strings, tesseract)\n'
+                printf '  2) network   (tshark, tcpdump, ngrep, zeek, capinfos)\n'
+                printf '  3) domain    (subfinder, whois, dig, dnsrecon, wafw00f)\n'
+                printf '  4) email     (holehe, h8mail, emailrep, theharvester)\n'
+                printf '  5) identity  (sherlock, maigret, blackbird, socialscan)\n'
+                printf '  6) documents (exiftool, pdftotext, mat2, qpdf, pdfinfo)\n'
+                printf '  7) opsec     (mat2, exiftool, age, gnupg)\n\n'
+                local wf_choice target
+                wf_choice="$(read_input "Workflow name or number [1-7]" "1")"
+                local wf_name="image"
+                case "$wf_choice" in
+                    1|image) wf_name="image" ;;
+                    2|network) wf_name="network" ;;
+                    3|domain) wf_name="domain" ;;
+                    4|email) wf_name="email" ;;
+                    5|identity) wf_name="identity" ;;
+                    6|documents|docs) wf_name="documents" ;;
+                    7|opsec) wf_name="opsec" ;;
+                esac
+                target="$(read_input "Target observable or specimen file path" "")"
+                [[ -z "$target" ]] && { log_warn "Target required."; pause_menu; continue; }
+
+                local p_mode="$(read_input "Execution mode: (1) Sequential [default], (2) Parallel" "1")"
+                local p_arg=""
+                [[ "$p_mode" == "2" || "$p_mode" == "parallel" ]] && p_arg="--parallel"
+
+                log_step "Launching workflow '$wf_name' on target '$target'..."
+                python3 -m traceforge.cli batch run "$target" --profile "$wf_name" $p_arg --case "$CURRENT_ACTIVE_CASE" --report markdown
+                pause_menu
+                ;;
+            4)
+                print_banner "Preview Pre-Flight Execution Plan"
+                local target tools
+                target="$(read_input "Target observable or file path" "")"
+                [[ -z "$target" ]] && { log_warn "Target required."; pause_menu; continue; }
+                tools="$(read_input "Tools or profile (e.g. exiftool,binwalk or image/network/domain)" "image")"
+
+                if [[ "$tools" =~ ^(image|network|domain|email|identity|documents|opsec)$ ]]; then
+                    python3 -m traceforge.cli batch plan "$target" --profile "$tools"
+                else
+                    python3 -m traceforge.cli batch plan "$target" --tools "$tools"
+                fi
+                pause_menu
+                ;;
+            5)
+                print_banner "Manage Saved Tool Set Profiles"
+                python3 -m traceforge.cli batch profile list
+                printf '\nActions: (1) Save New Profile, (2) Delete Custom Profile, (B) Back\n'
+                local pact
+                pact="$(read_input "Action [1-2, B]" "B")"
+                case "$pact" in
+                    1)
+                        local pname ptools pdesc
+                        pname="$(read_input "Profile Name" "")"
+                        [[ -z "$pname" ]] && { log_warn "Name required."; pause_menu; continue; }
+                        ptools="$(read_input "Comma-separated tools" "")"
+                        [[ -z "$ptools" ]] && { log_warn "Tools required."; pause_menu; continue; }
+                        pdesc="$(read_input "Description (optional)" "")"
+                        python3 -m traceforge.cli batch profile save "$pname" "$ptools" --desc "$pdesc"
+                        pause_menu
+                        ;;
+                    2)
+                        local pid
+                        pid="$(read_input "Profile ID to delete" "")"
+                        [[ -n "$pid" ]] && python3 -m traceforge.cli batch profile delete "$pid"
+                        pause_menu
+                        ;;
+                esac
+                ;;
+            6)
+                print_banner "Batch Execution History"
+                python3 -m traceforge.cli batch history
+                pause_menu
+                ;;
+            b|B) return 0 ;;
+            q|Q) log_info "Exiting TraceForge."; exit 0 ;;
+            *) log_warn "Invalid selection. Choose 1-6, B, or Q."; pause_menu ;;
         esac
     done
 }
@@ -2143,24 +2275,26 @@ main_menu() {
         printf '  %b[2]%b  Case Management              (Create, list, open, switch, rename & close)\n' "$C_BOLD" "$C_RESET"
         printf '  %b[3]%b  Evidence Management          (Ingest files, compute hashes, index & audit)\n' "$C_BOLD" "$C_RESET"
         printf '  %b[4]%b  Investigation Modules        (7 Core engines: Image, Network, Social, Email, DNS, Docs, OPSEC)\n' "$C_BOLD" "$C_RESET"
-        printf '  %b[5]%b  Built-in Analysis Tools      (Native Go & Python high-throughput triage utilities)\n' "$C_BOLD" "$C_RESET"
-        printf '  %b[6]%b  External Tools               (Check, run, and manage third-party binaries)\n' "$C_BOLD" "$C_RESET"
-        printf '  %b[7]%b  Tool Catalog                 (Search, browse, audit, and install 152 tools)\n' "$C_BOLD" "$C_RESET"
-        printf '  %b[8]%b  IOC Center                   (Extract, filter, search, defang, & export observables)\n' "$C_BOLD" "$C_RESET"
-        printf '  %b[9]%b  Findings Center              (Record, inspect, search, and categorize threats)\n' "$C_BOLD" "$C_RESET"
-        printf '  %b[10]%b Timeline Center              (Normalize, sort, filter, & export forensic events)\n' "$C_BOLD" "$C_RESET"
-        printf '  %b[11]%b Asset & Correlation          (Entity graphs, cross-feed correlation, snapshot diffs)\n' "$C_BOLD" "$C_RESET"
-        printf '  %b[12]%b Reports & Export             (Markdown, HTML, PDF, CSV, STIX 2.1, MISP, KML)\n' "$C_BOLD" "$C_RESET"
-        printf '  %b[13]%b Runtime & Configuration      (Configure profile, engine overrides, and settings)\n' "$C_BOLD" "$C_RESET"
-        printf '  %b[14]%b Installation & Repair        (Setup, minimal, recommended, full, repair, & Go rebuild)\n' "$C_BOLD" "$C_RESET"
-        printf '  %b[15]%b System Doctor                (Comprehensive environment & toolchain diagnostics)\n' "$C_BOLD" "$C_RESET"
-        printf '  %b[16]%b Updates                      (Check Git status and pull upstream master updates)\n' "$C_BOLD" "$C_RESET"
-        printf '  %b[17]%b Help & Reference             (Full reference manuals, architecture, and OPSEC rules)\n' "$C_BOLD" "$C_RESET"
-        printf '  %b[18]%b About & Legal Policies       (Responsible use, license, and multi-jurisdiction notices)\n' "$C_BOLD" "$C_RESET"
+        printf '  %b[5]%b  Batch Investigation Suite    (Custom tool sets, multi-engine workflows, & merged reports)\n' "$C_BOLD" "$C_RESET"
+        printf '  %b[6]%b  Built-in Analysis Tools      (Native Go & Python high-throughput triage utilities)\n' "$C_BOLD" "$C_RESET"
+        printf '  %b[7]%b  External Tools               (Check, run, and manage third-party binaries)\n' "$C_BOLD" "$C_RESET"
+        printf '  %b[8]%b  Tool Catalog                 (Search, browse, audit, and install 152 tools)\n' "$C_BOLD" "$C_RESET"
+        printf '  %b[9]%b  IOC Center                   (Extract, filter, search, defang, & export observables)\n' "$C_BOLD" "$C_RESET"
+        printf '  %b[10]%b Findings Center              (Record, inspect, search, and categorize threats)\n' "$C_BOLD" "$C_RESET"
+        printf '  %b[11]%b Timeline Center              (Normalize, sort, filter, & export forensic events)\n' "$C_BOLD" "$C_RESET"
+        printf '  %b[12]%b Asset & Correlation          (Entity graphs, cross-feed correlation, snapshot diffs)\n' "$C_BOLD" "$C_RESET"
+        printf '  %b[13]%b Reports & Export             (Markdown, HTML, PDF, CSV, STIX 2.1, MISP, KML)\n' "$C_BOLD" "$C_RESET"
+        printf '  %b[14]%b Runtime & Configuration      (Configure profile, engine overrides, and settings)\n' "$C_BOLD" "$C_RESET"
+        printf '  %b[15]%b Installation & Repair        (Setup, minimal, recommended, full, repair, & Go rebuild)\n' "$C_BOLD" "$C_RESET"
+        printf '  %b[16]%b System Doctor                (Comprehensive environment & toolchain diagnostics)\n' "$C_BOLD" "$C_RESET"
+        printf '  %b[17]%b Updates                      (Check Git status and pull upstream master updates)\n' "$C_BOLD" "$C_RESET"
+        printf '  %b[18]%b Help & Reference             (Full reference manuals, architecture, and OPSEC rules)\n' "$C_BOLD" "$C_RESET"
+        printf '  %b[19]%b About & Legal Policies       (Responsible use, license, and multi-jurisdiction notices)\n' "$C_BOLD" "$C_RESET"
+        printf '  %b[W]%b  Start Local Web Console      (Launch interactive browser UI at http://127.0.0.1:8000)\n' "$C_BOLD" "$C_RESET"
         printf '  %b[Q]%b  Quit\n\n' "$C_BOLD" "$C_RESET"
 
         local raw_choice choice
-        raw_choice="$(read_input "Select Option [1-18]" "")"
+        raw_choice="$(read_input "Select Option [1-19, W]" "")"
         choice="$(echo "$raw_choice" | tr -d '[:space:]' | tr '[:lower:]' '[:upper:]')"
 
         case "$choice" in
@@ -2168,26 +2302,36 @@ main_menu() {
             2|CASE|CASES) menu_case_management ;;
             3|E|EVIDENCE) menu_evidence_management ;;
             4|M|MODULE|MODULES) menu_investigation_modules ;;
-            5|T|TOOLS) menu_builtin_tools ;;
-            6|EXT|EXTERNAL) menu_external_tools ;;
-            7|CAT|CATALOG) menu_tool_catalog ;;
-            8|I|IOC|IOCS) menu_ioc_center ;;
-            9|F|FINDING|FINDINGS) menu_findings_center ;;
-            10|TIME|TIMELINE) menu_timeline_center ;;
-            11|A|ASSET|CORRELATE) menu_asset_correlation ;;
-            12|R|REP|REPORT|EXPORT) menu_reports_export ;;
-            13|S|CFG|CONFIG|SETTINGS) menu_runtime_settings ;;
-            14|INST|INSTALL|SETUP) menu_installation_repair ;;
-            15|DOC|DOCTOR) menu_system_doctor ;;
-            16|U|UPD|UPDATE) menu_update_repo ;;
-            17|H|HELP) menu_help_center ;;
-            18|ABOUT|LEGAL) menu_about ;;
+            5|BATCH|BATCHES) menu_batch_investigation ;;
+            6|T|TOOLS) menu_builtin_tools ;;
+            7|EXT|EXTERNAL) menu_external_tools ;;
+            8|CAT|CATALOG) menu_tool_catalog ;;
+            9|I|IOC|IOCS) menu_ioc_center ;;
+            10|F|FINDING|FINDINGS) menu_findings_center ;;
+            11|TIME|TIMELINE) menu_timeline_center ;;
+            12|A|ASSET|CORRELATE) menu_asset_correlation ;;
+            13|R|REP|REPORT|EXPORT) menu_reports_export ;;
+            14|S|CFG|CONFIG|SETTINGS) menu_runtime_settings ;;
+            15|INST|INSTALL|SETUP) menu_installation_repair ;;
+            16|DOC|DOCTOR) menu_system_doctor ;;
+            17|U|UPD|UPDATE) menu_update_repo ;;
+            18|H|HELP) menu_help_center ;;
+            19|ABOUT|LEGAL) menu_about ;;
+            W|WEB)
+                print_banner "Starting TraceForge Local Web Console"
+                if need_cmd python3; then
+                    python3 -m traceforge.cli web </dev/null
+                else
+                    log_err "Python3 required to launch web interface."
+                fi
+                pause_menu
+                ;;
             Q|QUIT|EXIT)
                 log_info "Exiting TraceForge."
                 exit 0
                 ;;
             *)
-                log_warn "Unknown option: '$raw_choice'. Choose 1-18 or Q."
+                log_warn "Unknown option: '$raw_choice'. Choose 1-19, W, or Q."
                 pause_menu
                 ;;
         esac
@@ -2199,6 +2343,26 @@ main_menu() {
 # =============================================================================
 if [[ $# -gt 0 ]]; then
     case "$1" in
+        batch)
+            shift
+            if need_cmd python3; then
+                python3 -m traceforge.cli batch "$@"
+            else
+                log_err "Python3 required for batch engine."
+                exit 1
+            fi
+            exit $?
+            ;;
+        web|--web)
+            shift
+            if need_cmd python3; then
+                python3 -m traceforge.cli web "$@"
+            else
+                log_err "Python3 required to launch web interface."
+                exit 1
+            fi
+            exit 0
+            ;;
         traceforge-native|native-tools|omni-tools|tools)
             shift
             if [[ -x "$ROOT_DIR/bin/traceforge-native" ]]; then
@@ -2214,7 +2378,8 @@ if [[ $# -gt 0 ]]; then
             exit 0
             ;;
         doctor|--doctor|-d)
-            "$SCRIPTS_DIR/doctor.sh"
+            shift
+            "$SCRIPTS_DIR/doctor.sh" "$@"
             exit 0
             ;;
         profile)
@@ -2288,6 +2453,7 @@ TraceForge v$(get_version) — CLI & Operator Console
 
 Usage:
   ./main.sh                                Launch interactive operator console
+  ./main.sh web [--port 8000]              Launch local interactive web console
   ./main.sh traceforge-native <cmd> [args] Run native first-party TraceForge tools
   ./main.sh export <case-id> [options]     Export case to reports & datasets
   ./main.sh doctor                         Run environment & toolchain diagnostics

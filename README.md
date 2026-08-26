@@ -60,52 +60,88 @@ The project does not use Go as a duplicate copy of the application; Go provides 
 
 ## Quick Start
 
-### Automatic Setup
+### 1. One-Liner Quick Install (`curl`)
+
+Install and bootstrap TraceForge automatically with a single command:
 
 ```bash
-git clone https://github.com/paman7647/TraceForge.git
-cd TraceForge
-chmod +x setup.sh run.sh main.sh install_all.sh
-./setup.sh
+curl -fsSL https://raw.githubusercontent.com/paman7647/TraceForge/master/scripts/bootstrap.sh | bash
 ```
 
-### Run
+Or with a specific profile:
 
 ```bash
-./run.sh
-```
-
-or using the Python CLI:
-
-```bash
-traceforge --help
-```
-
-### System Diagnostics
-
-```bash
-traceforge doctor
-# or
-./main.sh doctor
+curl -fsSL https://raw.githubusercontent.com/paman7647/TraceForge/master/scripts/bootstrap.sh | bash -s -- --profile recommended
 ```
 
 ---
 
-## Example Commands
+### 2. Global Installation via `pip`
 
 ```bash
-# Extract and defang IOCs from evidence
-traceforge ioc extract evidence.txt
+pip install traceforge-osint
+```
 
-# Generate an interactive HTML entity graph
-traceforge asset graph entities.jsonl --html graph.html
+Once installed, TraceForge is immediately available globally from any directory:
 
-# Interactive case management and catalog search
-./main.sh list-cases
-./main.sh search "pcap"
+```bash
+# Verify installation and toolchain health
+traceforge doctor
 
-# Export case findings across all supported formats
-./main.sh export CASE-20260825-ABC123 --all
+# Launch the interactive terminal console
+traceforge
+
+# Launch the local interactive web interface (http://127.0.0.1:8000)
+traceforge web
+```
+
+---
+
+### 3. Development Installation from Source
+
+```bash
+git clone https://github.com/paman7647/TraceForge.git
+cd TraceForge
+pip install -e .
+./setup.sh
+```
+
+---
+
+## Example CLI Commands
+
+TraceForge operates seamlessly without requiring users to change into specific directories:
+
+```bash
+# View system & user data paths
+traceforge config paths
+
+# Case Management
+traceforge case new "Operation Red Horizon" --analyst "Lead Analyst"
+traceforge cases
+traceforge case open CASE-20260826-XXXXXX
+
+# Evidence Ingestion & Hashing
+traceforge evidence add /path/to/specimen.pcap --desc "Network Capture"
+traceforge evidence list
+
+# Threat Observables (IOCs)
+echo "Suspicious node: 198.51.100.25 on malware.domain.org" | traceforge ioc extract --defang
+traceforge ioc add 203.0.113.50 --type ipv4
+
+# Run Investigation Modules
+traceforge investigate image specimen.jpg
+traceforge investigate network capture.pcap
+traceforge investigate domain target.corp
+traceforge investigate identity analyst_handle
+traceforge investigate email suspect@domain.com
+traceforge investigate opsec
+
+# Multi-Format Deliverable Reports
+traceforge export CASE-20260826-XXXXXX --redact --out ./reports
+
+# Launch Local Web Console
+traceforge web --port 8000
 ```
 
 ---

@@ -1,0 +1,5 @@
+# TraceForge Core Runtime Dependencies
+# Core TraceForge CLI, forensics engine, and web console are 100% pure Python standard library.
+# Optional document & spreadsheet reporting packages:
+openpyxl>=3.1.0
+python-docx>=1.0.0

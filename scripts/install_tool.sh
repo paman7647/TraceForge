@@ -60,18 +60,48 @@ if need_cmd "$t_bin"; then
     exit 0
 fi
 
-log_step "Installing $t_name ($t_bin)..."
+log_step "Resolving platform compatibility for $t_name ($t_bin)..."
 
 case "$t_eco" in
     native)
         if [[ "$OS_TYPE" == "darwin" ]]; then
+            if [[ -z "$t_mac" || "$t_mac" == "-" || "$t_mac" == "n/a" || "$t_mac" == "none" || "$t_mac" == "unsupported" || "$t_mac" == "linux-only" ]]; then
+                log_err "Tool '$t_name' ($t_bin) is NOT available on macOS (Linux only)."
+                log_info "No installation was attempted."
+                exit 1
+            fi
+            if [[ "$t_mac" == "manual" ]]; then
+                log_warn "Tool '$t_name' ($t_bin) requires manual installation on macOS."
+                log_info "Upstream URL: $t_url"
+                exit 1
+            fi
             install_brew_formula "$t_mac"
         elif [[ "$OS_TYPE" == "termux" ]]; then
+            if [[ -z "$t_lin" || "$t_lin" == "-" || "$t_lin" == "n/a" || "$t_lin" == "none" || "$t_lin" == "unsupported" ]]; then
+                log_err "Tool '$t_name' ($t_bin) is NOT available on Termux / Android."
+                log_info "No installation was attempted."
+                exit 1
+            fi
+            if [[ "$t_lin" == "manual" ]]; then
+                log_warn "Tool '$t_name' ($t_bin) requires manual installation on Termux."
+                log_info "Upstream URL: $t_url"
+                exit 1
+            fi
             install_termux_package "$t_lin" "$t_bin"
         elif [[ "$OS_TYPE" == "linux" ]]; then
+            if [[ -z "$t_lin" || "$t_lin" == "-" || "$t_lin" == "n/a" || "$t_lin" == "none" || "$t_lin" == "unsupported" ]]; then
+                log_err "Tool '$t_name' ($t_bin) is NOT available on Linux."
+                exit 1
+            fi
+            if [[ "$t_lin" == "manual" ]]; then
+                log_warn "Tool '$t_name' ($t_bin) requires manual installation on Linux."
+                log_info "Upstream URL: $t_url"
+                exit 1
+            fi
             install_apt_package "$t_lin" "$t_bin"
         else
             log_warn "Manual installation required for platform $OS_NAME: $t_url"
+            exit 1
         fi
         ;;
     pipx)
@@ -89,6 +119,7 @@ case "$t_eco" in
     *)
         log_warn "Tool '$t_name' requires manual installation or API key configuration."
         log_info "Upstream URL: $t_url"
+        exit 1
         ;;
 esac
 

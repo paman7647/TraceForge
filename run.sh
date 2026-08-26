@@ -8,7 +8,7 @@ IFS=$'\n\t'
 ROOT_DIR=$(CDPATH='' cd -- "$(dirname -- "$0")" && pwd -P)
 
 # 0. Initialize environment paths (bin, ~/.local/bin, go/bin, brew/bin)
-# shellcheck source=lib/platform.sh
+# shellcheck disable=SC1091
 if [[ -f "$ROOT_DIR/lib/platform.sh" ]]; then
     source "$ROOT_DIR/lib/platform.sh"
 fi

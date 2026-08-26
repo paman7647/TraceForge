@@ -64,8 +64,11 @@ target/
 # ------------------------------------------------------------------------------
 tests/
 test/
+test_*.py
+*_test.py
 *.test.py
 *.test.sh
+*_test.go
 .tox/
 .nox/
 .coverage
@@ -110,6 +113,11 @@ scripts/dev/
 scripts/internal/
 scratch/
 upload_to_pypi.py
+
+# Release & upload automation (maintainer-only, never committed)
+up.py
+traceforge-*.zip
+*.whl
 
 # ------------------------------------------------------------------------------
 # 6. Documentation Build Artifacts

@@ -55,31 +55,53 @@ Every catalog tool defines package installation recipes for its upstream ecosyst
 
 ---
 
-## 4. Searching & Inspecting the Catalog
+## 4. Platform-Aware Tool Management & CLI Commands
 
-Search the catalog from the CLI:
+TraceForge actively evaluates host compatibility across macOS, Linux distros, and Android (Termux) before displaying or installing any utility.
 
 ```bash
-# Search by keyword
-traceforge catalog "pcap"
+# Platform capability audit
+traceforge tools audit-platform
+traceforge doctor
 
-# Search via main shell entrypoint
-./main.sh search "exif"
-```
+# Filter catalog by active platform availability
+traceforge tools list --platform current --available
+traceforge tools list --platform current --unavailable
+traceforge tools list --platform current --manual
+traceforge tools list --platform current --installed
+traceforge tools list --platform current --missing
 
-Output displays installed vs available status:
-```text
-TraceForge Catalog: 4 tools found
-    2. [INSTALLED] ExifTool               (exiftool) [Media & Image Forensics] - Read and write meta information in files
-   12. [AVAILABLE] Exiv2                  (exiv2)    [Media & Image Forensics] - Image metadata library and tools
+# Detailed platform specification and recipe
+traceforge tools info exiftool
+traceforge tools info macchanger
+
+# Pre-flight checked platform installation
+traceforge tools install sherlock
+traceforge tools install-profile recommended
 ```
 
 ---
 
-## 5. Termux & Android Tool Support
+## 5. Web Console Platform Lifecycle Explorer
+
+The TraceForge Web Interface (`http://127.0.0.1:8000/#catalog`) exposes real-time platform awareness:
+- **Platform Banner**: Live display of active host OS, architecture, package manager, and privilege state.
+- **Platform Toggle**: Switch between `Current Platform` (host-compatible utilities) and `All Platforms`.
+- **Availability Filters**: Filter by `Available on Host`, `Unavailable on Host`, `Manual Install Only`, `Installed Only`, or `Missing Only`.
+- **Platform-Aware Profiles**: Shows preview counts of installable, installed, and skipped utilities prior to triggering batch workers.
+- **REST Endpoints**:
+  - `GET /api/catalog?platform=current&availability=available`: Returns platform-filtered tools.
+  - `GET /api/catalog/platform-audit`: Returns platform capability metrics and breakdown.
+  - `POST /api/catalog/install`: Pre-flight validates compatibility before execution.
+  - `POST /api/catalog/install-profile`: Executes batch installation plan skipping unavailable tools.
+
+---
+
+## 6. Termux & Android Tool Support
 
 The catalog includes 7 dedicated metadata columns for Termux/Android compatibility:
-- **`termux_status`**: `supported`, `hardware_dependent`, `root_required`, or `desktop_only`.
+- **`termux_status`**: `supported`, `limited`, `manual`, or `desktop_only`.
 - **`termux_package`**: Native Termux package name (e.g. `exiftool`, `nmap`, `tshark`).
+- **`termux_install`**: Specific Termux installation command if different from `pkg`.
 - **`termux_root`**: Whether execution requires Android root (`su`).
 - **`termux_hardware`**: Whether execution requires external hardware (e.g. Wi-Fi OTG adapter).

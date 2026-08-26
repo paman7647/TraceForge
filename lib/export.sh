@@ -88,11 +88,12 @@ case_package_archive() {
     local out_archive=""
     if [[ "$pkg_type" == "zip" ]]; then
         out_archive="$case_path/${case_id}-package.zip"
-        (cd "$case_path" && zip -r -q "$out_archive" reports/ exports/ manifest/ case.json case.yml 2>/dev/null || true)
+        (cd "$case_path" && zip -r -q "$out_archive" reports/ exports/ manifest/ case.json case.yml 2>/dev/null) || true
     else
         out_archive="$case_path/${case_id}-package.tar.gz"
-        (cd "$case_path" && tar -czf "$out_archive" reports/ exports/ manifest/ case.json case.yml 2>/dev/null || true)
+        (cd "$case_path" && tar -czf "$out_archive" reports/ exports/ manifest/ case.json case.yml 2>/dev/null) || true
     fi
+
 
     if [[ -f "$out_archive" ]]; then
         local arch_hash

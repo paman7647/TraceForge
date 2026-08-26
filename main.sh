@@ -1901,8 +1901,9 @@ menu_update_repo() {
     print_banner "Update / Check TraceForge Repository"
     if [[ -d "$ROOT_DIR/.git" ]] && need_cmd git; then
         log_info "Fetching latest remote updates from Git..."
-        (cd "$ROOT_DIR" && git fetch --all --prune 2>/dev/null || true)
+        (cd "$ROOT_DIR" && git fetch --all --prune 2>/dev/null) || true
         local status_out
+
         status_out="$(cd "$ROOT_DIR" && git status -uno 2>/dev/null || echo "")"
         printf '%s\n\n' "$status_out"
 

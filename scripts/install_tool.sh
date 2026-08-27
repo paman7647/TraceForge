@@ -18,26 +18,33 @@ source "$ROOT_DIR/lib/packages.sh"
 source "$ROOT_DIR/lib/catalog.sh"
 
 usage() {
+    local exit_code="${1:-0}"
     cat << 'EOF'
 TraceForge — Individual Tool Installer
 
 Usage:
   ./scripts/install_tool.sh <tool-id-or-binary-name>
+  ./scripts/install_tool.sh --help
 
 Examples:
   ./scripts/install_tool.sh 1
   ./scripts/install_tool.sh exiftool
   ./scripts/install_tool.sh sherlock
 EOF
-    exit 0
+    exit "$exit_code"
 }
 
 if [[ $# -eq 0 ]]; then
-    usage
+    usage 1
+fi
+
+if [[ "$1" == "--help" || "$1" == "-h" ]]; then
+    usage 0
 fi
 
 TOOL_QUERY="$1"
 RECORD=""
+
 
 if [[ "$TOOL_QUERY" =~ ^[0-9]+$ ]]; then
     RECORD="$(catalog_get_by_id "$TOOL_QUERY")"

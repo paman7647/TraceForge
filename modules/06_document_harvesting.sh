@@ -16,10 +16,16 @@ source "$ROOT_DIR/lib/platform.sh"
 
 INPUT_DOC=${1:-""}
 
+if [[ "$INPUT_DOC" == "--help" || "$INPUT_DOC" == "-h" ]]; then
+    printf 'TraceForge Module 06 — Document & Metadata Harvesting\n\nUsage:\n  %s <document-file>\n' "$0"
+    exit 0
+fi
+
 if [[ -z "$INPUT_DOC" ]]; then
     printf 'Usage: %s <document-file>\n' "$0" >&2
     exit 1
 fi
+
 
 if [[ ! -f "$INPUT_DOC" ]]; then
     die "Document file does not exist: $INPUT_DOC"

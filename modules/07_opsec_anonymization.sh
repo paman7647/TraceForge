@@ -14,7 +14,20 @@ source "$ROOT_DIR/lib/common.sh"
 # shellcheck source=lib/platform.sh
 source "$ROOT_DIR/lib/platform.sh"
 
+if [[ "${1:-}" == "--help" || "${1:-}" == "-h" ]]; then
+    printf 'TraceForge Module 07 — OPSEC & Anonymization Audit\n\nUsage:\n  %s\n' "$0"
+    exit 0
+fi
+
+
+if [[ -n "${1:-}" ]]; then
+    log_err "Unknown option: $1"
+    printf 'Usage: %s\n' "$0" >&2
+    exit 1
+fi
+
 RUN_DIR="$(make_run_dir "$ROOT_DIR" "opsec_audit")"
+
 REPORT="$RUN_DIR/report.txt"
 
 info "Initiating OPSEC & Anonymization environment audit..."

@@ -23,6 +23,7 @@ VERBOSE_MODE=0
 OFFLINE_MODE=0
 
 show_help() {
+    local exit_code="${1:-0}"
     cat << 'EOF'
 TraceForge 1.0.0 — First-Time Setup & Installer
 
@@ -53,7 +54,7 @@ Examples:
   ./setup.sh --repair                 # Repair an existing installation
   ./setup.sh --offline                # Setup with existing local tools without network calls
 EOF
-    exit 0
+    exit "$exit_code"
 }
 
 # Parse CLI flags
@@ -90,14 +91,15 @@ while [[ $# -gt 0 ]]; do
             shift
             ;;
         --help|-h)
-            show_help
+            show_help 0
             ;;
         *)
             log_err "Unknown option: $1"
-            show_help
+            show_help 1
             ;;
     esac
 done
+
 
 printf '%b' "$C_MAGENTA"
 printf '%s\n' '======================================================================'

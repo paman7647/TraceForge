@@ -16,10 +16,16 @@ source "$ROOT_DIR/lib/platform.sh"
 
 TARGET_EMAIL=${1:-""}
 
-if [[ -z "$TARGET_EMAIL" ]]; then
-    printf 'Usage: %s <target-email-address>\n' "$0" >&2
+if [[ "$TARGET_EMAIL" == "--help" || "$TARGET_EMAIL" == "-h" ]]; then
+    printf 'TraceForge Module 04 — Email & Breach Exposure Triage\n\nUsage:\n  %s <target-email-address>\n' "$0"
+    exit 0
+fi
+
+if [[ -z "$TARGET_EMAIL" || "$TARGET_EMAIL" == -* || "$TARGET_EMAIL" != *"@"*"."* ]]; then
+    printf 'Usage: %s <target-email-address (user@domain.tld)>\n' "$0" >&2
     exit 1
 fi
+
 
 # Basic email syntax sanity check
 if [[ "$TARGET_EMAIL" != *"@"*"."* ]]; then

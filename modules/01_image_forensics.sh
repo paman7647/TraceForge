@@ -16,10 +16,16 @@ source "$ROOT_DIR/lib/platform.sh"
 
 INPUT_FILE=${1:-""}
 
+if [[ "$INPUT_FILE" == "--help" || "$INPUT_FILE" == "-h" ]]; then
+    printf 'TraceForge Module 01 — Image & Media Forensics\n\nUsage:\n  %s <image-or-media-file>\n' "$0"
+    exit 0
+fi
+
 if [[ -z "$INPUT_FILE" ]]; then
     printf 'Usage: %s <image-or-media-file>\n' "$0" >&2
     exit 1
 fi
+
 
 if [[ ! -f "$INPUT_FILE" ]]; then
     die "Evidence file does not exist: $INPUT_FILE"

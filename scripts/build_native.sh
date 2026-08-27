@@ -17,6 +17,7 @@ FORCE_BUILD=0
 VERBOSE=0
 
 usage() {
+    local exit_code="${1:-0}"
     cat << 'EOF'
 TraceForge Go Native Helper Builder
 
@@ -28,7 +29,7 @@ Options:
   --verbose, -v  Show detailed compiler output
   --help, -h     Show this help message
 EOF
-    exit 0
+    exit "$exit_code"
 }
 
 while [[ $# -gt 0 ]]; do
@@ -42,14 +43,15 @@ while [[ $# -gt 0 ]]; do
             shift
             ;;
         --help|-h)
-            usage
+            usage 0
             ;;
         *)
             log_err "Unknown option: $1"
-            usage
+            usage 1
             ;;
     esac
 done
+
 
 main() {
     detect_platform

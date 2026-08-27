@@ -16,10 +16,16 @@ source "$ROOT_DIR/lib/platform.sh"
 
 RAW_DOMAIN=${1:-""}
 
-if [[ -z "$RAW_DOMAIN" ]]; then
+if [[ "$RAW_DOMAIN" == "--help" || "$RAW_DOMAIN" == "-h" ]]; then
+    printf 'TraceForge Module 05 — Domain, DNS & Infrastructure Intelligence\n\nUsage:\n  %s <domain-name>\n' "$0"
+    exit 0
+fi
+
+if [[ -z "$RAW_DOMAIN" || "$RAW_DOMAIN" == -* ]]; then
     printf 'Usage: %s <domain-name>\n' "$0" >&2
     exit 1
 fi
+
 
 # Clean and normalize domain name
 TARGET_DOMAIN="${RAW_DOMAIN#http://}"

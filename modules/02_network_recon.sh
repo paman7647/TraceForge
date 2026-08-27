@@ -16,10 +16,16 @@ source "$ROOT_DIR/lib/platform.sh"
 
 INPUT_PCAP=${1:-""}
 
+if [[ "$INPUT_PCAP" == "--help" || "$INPUT_PCAP" == "-h" ]]; then
+    printf 'TraceForge Module 02 — Network, PCAP & Wireless Forensics\n\nUsage:\n  %s <capture-file (.pcap|.cap|.pcapng)>\n' "$0"
+    exit 0
+fi
+
 if [[ -z "$INPUT_PCAP" ]]; then
     printf 'Usage: %s <capture-file (.pcap|.cap|.pcapng)>\n' "$0" >&2
     exit 1
 fi
+
 
 if [[ ! -f "$INPUT_PCAP" ]]; then
     die "Capture file does not exist: $INPUT_PCAP"

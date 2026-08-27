@@ -18,10 +18,22 @@ source "$SCRIPT_DIR/platform.sh"
 run_system_diagnostics() {
     local repair_mode=0
     for arg in "$@"; do
-        if [[ "$arg" == "--repair" || "$arg" == "-r" ]]; then
-            repair_mode=1
-        fi
+        case "$arg" in
+            --help|-h)
+                printf 'TraceForge Environment & Runtime Diagnostics\n\nUsage:\n  ./scripts/doctor.sh [options]\n\nOptions:\n  --repair, -r    Attempt automated directory and toolchain repair\n  --help, -h      Show this help message\n'
+                exit 0
+                ;;
+            --repair|-r)
+                repair_mode=1
+                ;;
+            *)
+                log_err "Unknown option: $arg"
+                printf 'Usage: ./scripts/doctor.sh [--repair] [--help]\n' >&2
+                exit 1
+                ;;
+        esac
     done
+
 
     if [[ "$repair_mode" -eq 1 ]]; then
         printf '%b[+] Initiating Environment & Toolchain Repair...%b\n' "$C_CYAN" "$C_RESET"

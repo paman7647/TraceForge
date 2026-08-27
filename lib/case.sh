@@ -83,23 +83,24 @@ case_create() {
     created_time="$(date -u '+%Y-%m-%dT%H:%M:%SZ')"
 
     # Create canonical case.json using Python for strict, robust JSON serialization
-    python3 - << PYEOF > "$case_path/case.json"
-import json
+    python3 - "$case_id" "$name" "$analyst" "$org" "$classification" "$incident_ref" "$created_time" "$OS_NAME" "$OS_TYPE" "$OS_ARCH" "$notes" << 'PYEOF' > "$case_path/case.json"
+import json, sys
+cid, name, analyst, org, classification, incident_ref, created_time, os_name, os_type, os_arch, notes = sys.argv[1:12]
 
 case_data = {
     "schema_version": "1.0",
-    "suite_version": "1.0.0",
-    "case_id": "$case_id",
-    "case_name": """$name""",
-    "analyst": """$analyst""",
-    "organization": """$org""",
-    "classification": """$classification""",
-    "incident_ref": """$incident_ref""",
-    "created_at": "$created_time",
-    "updated_at": "$created_time",
-    "platform": "$OS_NAME",
-    "host_os": "$OS_TYPE",
-    "architecture": "$OS_ARCH",
+    "suite_version": "1.0.1",
+    "case_id": cid,
+    "case_name": name,
+    "analyst": analyst,
+    "organization": org,
+    "classification": classification,
+    "incident_ref": incident_ref,
+    "created_at": created_time,
+    "updated_at": created_time,
+    "platform": os_name,
+    "host_os": os_type,
+    "architecture": os_arch,
     "evidence": [],
     "modules_run": [],
     "tools_run": [],
@@ -114,7 +115,7 @@ case_data = {
         "last_exported_at": None
     },
     "limitations": "Standard open-source intelligence collection limitations apply. Non-intrusive collection methods.",
-    "notes": """$notes"""
+    "notes": notes
 }
 
 print(json.dumps(case_data, indent=2))
@@ -161,19 +162,20 @@ case_log_chain() {
     timestamp="$(date -u '+%Y-%m-%dT%H:%M:%SZ')"
     local actor="${USER:-"analyst"}"
 
-    python3 - << PYEOF >> "$log_file"
-import json
+    python3 - "$timestamp" "$actor" "$action" "$case_id" "$evidence_id" "$input_hash" "$output_hash" "$tool" "$result" << 'PYEOF' >> "$log_file"
+import json, sys
+ts, actor, action, cid, evid_id, in_hash, out_hash, tool, result = sys.argv[1:10]
 entry = {
-    "timestamp": "$timestamp",
-    "actor": """$actor""",
-    "action": """$action""",
-    "case_id": "$case_id",
-    "evidence_id": """$evidence_id""",
-    "input_hash": """$input_hash""",
-    "output_hash": """$output_hash""",
-    "tool": """$tool""",
-    "tool_version": "2.4.0",
-    "result": """$result"""
+    "timestamp": ts,
+    "actor": actor,
+    "action": action,
+    "case_id": cid,
+    "evidence_id": evid_id,
+    "input_hash": in_hash,
+    "output_hash": out_hash,
+    "tool": tool,
+    "tool_version": "1.0.1",
+    "result": result
 }
 print(json.dumps(entry))
 PYEOF
@@ -224,29 +226,30 @@ case_add_evidence() {
     import_time="$(date -u '+%Y-%m-%dT%H:%M:%SZ')"
 
     # Update case.json atomically
-    python3 - << PYEOF
-import json
+    python3 - "$case_path" "$evid_id" "$base_name" "$abs_src" "$dest_rel_path" "$sha256_val" "$size_bytes" "$mime_type" "$import_time" "$source_desc" "$notes" << 'PYEOF'
+import json, sys
+cpath, evid_id, base_name, abs_src, dest_rel, sha256_v, size_b, mime_t, imp_time, src_desc, notes = sys.argv[1:12]
 
-with open("$case_path/case.json", "r") as f:
+with open(f"{cpath}/case.json", "r") as f:
     data = json.load(f)
 
 new_evid = {
-    "evidence_id": "$evid_id",
-    "original_name": """$base_name""",
-    "original_path": """$abs_src""",
-    "stored_path": "$dest_rel_path",
-    "sha256": "$sha256_val",
-    "size_bytes": int("$size_bytes"),
-    "mime_type": """$mime_type""",
-    "imported_at": "$import_time",
-    "source": """$source_desc""",
-    "notes": """$notes"""
+    "evidence_id": evid_id,
+    "original_name": base_name,
+    "original_path": abs_src,
+    "stored_path": dest_rel,
+    "sha256": sha256_v,
+    "size_bytes": int(size_b) if size_b.isdigit() else 0,
+    "mime_type": mime_t,
+    "imported_at": imp_time,
+    "source": src_desc,
+    "notes": notes
 }
 
 data.setdefault("evidence", []).append(new_evid)
-data["updated_at"] = "$import_time"
+data["updated_at"] = imp_time
 
-with open("$case_path/case.json", "w") as f:
+with open(f"{cpath}/case.json", "w") as f:
     json.dump(data, f, indent=2)
 PYEOF
 
@@ -279,44 +282,46 @@ case_add_finding() {
     local find_id
     find_id="$(printf 'FIND-%03d' "$next_idx")"
 
-    python3 - << PYEOF
-import json
+    python3 - "$case_path" "$find_id" "$title" "$severity" "$confidence" "$summary" "$details" "$evidence_ref" "$tool_ref" "$analyst_notes" "$created_time" << 'PYEOF'
+import json, sys
+cpath, find_id, title, severity, confidence, summary, details, evid_ref, tool_ref, a_notes, cr_time = sys.argv[1:12]
 
-with open("$case_path/case.json", "r") as f:
+with open(f"{cpath}/case.json", "r") as f:
     data = json.load(f)
 
-evid_refs = ["$evidence_ref"] if "$evidence_ref" else []
-tool_refs = ["$tool_ref"] if "$tool_ref" else []
+evid_refs = [evid_ref] if evid_ref else []
+tool_refs = [tool_ref] if tool_ref else []
 
 finding = {
-    "finding_id": "$find_id",
-    "title": """$title""",
-    "severity": "$severity".lower(),
-    "confidence": "$confidence".lower(),
+    "finding_id": find_id,
+    "title": title,
+    "severity": severity.lower(),
+    "confidence": confidence.lower(),
     "status": "verified",
-    "summary": """$summary""",
-    "details": """$details""",
+    "summary": summary,
+    "details": details,
     "evidence_refs": evid_refs,
     "tool_refs": tool_refs,
     "ioc_refs": [],
     "timeline_refs": [],
-    "analyst_notes": """$analyst_notes""",
-    "created_at": "$created_time",
-    "updated_at": "$created_time"
+    "analyst_notes": a_notes,
+    "created_at": cr_time,
+    "updated_at": cr_time
 }
 
 data.setdefault("findings", []).append(finding)
-data["updated_at"] = "$created_time"
+data["updated_at"] = cr_time
 
-with open("$case_path/case.json", "w") as f:
+with open(f"{cpath}/case.json", "w") as f:
     json.dump(data, f, indent=2)
 
 # Also write individual finding JSON in findings/
-with open("$case_path/findings/$find_id.json", "w") as f:
+with open(f"{cpath}/findings/{find_id}.json", "w") as f:
     json.dump(finding, f, indent=2)
 PYEOF
 
-    case_log_chain "$case_id" "FINDING_RECORDED" "$evidence_ref" "N/A" "N/A" "$tool_ref" "Recorded $find_id: $title ($severity)"
+    case_log_chain "$case_id" "FINDING_ADDED" "$find_id" "N/A" "N/A" "case.sh" "Added $find_id: $title ($severity)"
+    info "Recorded finding [$find_id]: $title [$severity / $confidence]"
     printf '%s\n' "$find_id"
 }
 
@@ -341,35 +346,36 @@ case_add_ioc() {
     local ioc_id
     ioc_id="$(printf 'IOC-%03d' "$next_idx")"
 
-    python3 - << PYEOF
-import json
+    python3 - "$case_path" "$ioc_id" "$ioc_type" "$value" "$source" "$confidence" "$severity" "$tags_str" "$case_id" "$created_time" << 'PYEOF'
+import json, sys
+cpath, ioc_id, ioc_type, value, src, conf, sev, tags_s, cid, cr_time = sys.argv[1:11]
 
-with open("$case_path/case.json", "r") as f:
+with open(f"{cpath}/case.json", "r") as f:
     data = json.load(f)
 
-tags = [t.strip() for t in "$tags_str".split(",") if t.strip()]
+tags = [t.strip() for t in tags_s.split(",") if t.strip()]
 
 ioc = {
-    "ioc_id": "$ioc_id",
-    "type": "$ioc_type".lower(),
-    "value": """$value""",
-    "normalized_value": """$value""".strip().lower(),
-    "source": """$source""",
-    "first_seen": "$created_time",
-    "last_seen": "$created_time",
-    "confidence": "$confidence".lower(),
-    "severity": "$severity".lower(),
+    "ioc_id": ioc_id,
+    "type": ioc_type.lower(),
+    "value": value,
+    "normalized_value": value.strip().lower(),
+    "source": src,
+    "first_seen": cr_time,
+    "last_seen": cr_time,
+    "confidence": conf.lower(),
+    "severity": sev.lower(),
     "tags": tags,
-    "case_id": "$case_id"
+    "case_id": cid
 }
 
 data.setdefault("iocs", []).append(ioc)
-data["updated_at"] = "$created_time"
+data["updated_at"] = cr_time
 
-with open("$case_path/case.json", "w") as f:
+with open(f"{cpath}/case.json", "w") as f:
     json.dump(data, f, indent=2)
 
-with open("$case_path/iocs/$ioc_id.json", "w") as f:
+with open(f"{cpath}/iocs/{ioc_id}.json", "w") as f:
     json.dump(ioc, f, indent=2)
 PYEOF
 
@@ -396,31 +402,31 @@ case_add_timeline_event() {
     local evt_id
     evt_id="$(printf 'EVT-%04d' "$next_idx")"
 
-    python3 - << PYEOF
-import json
+    python3 - "$case_path" "$evt_id" "$timestamp_utc" "$event_type" "$description" "$evidence_id" "$tool" "$severity" "$confidence" << 'PYEOF'
+import json, sys
+cpath, evt_id, ts_utc, evt_type, desc, evid_id, tool, sev, conf = sys.argv[1:10]
 
-with open("$case_path/case.json", "r") as f:
+with open(f"{cpath}/case.json", "r") as f:
     data = json.load(f)
 
 evt = {
-    "event_id": "$evt_id",
-    "timestamp_utc": "$timestamp_utc",
-    "timestamp_original": "$timestamp_utc",
+    "event_id": evt_id,
+    "timestamp_utc": ts_utc,
+    "timestamp_original": ts_utc,
     "timezone": "UTC",
-    "event_type": "$event_type",
-    "source": """$tool""" or "Investigation",
-    "description": """$description""",
-    "evidence_id": """$evidence_id""",
-    "tool": """$tool""",
-    "severity": "$severity",
-    "confidence": "$confidence"
+    "event_type": evt_type,
+    "source": tool or "Investigation",
+    "description": desc,
+    "evidence_id": evid_id,
+    "tool": tool,
+    "severity": sev,
+    "confidence": conf
 }
 
 data.setdefault("timeline_events", []).append(evt)
-# Sort timeline chronologically
 data["timeline_events"].sort(key=lambda x: x.get("timestamp_utc", ""))
 
-with open("$case_path/case.json", "w") as f:
+with open(f"{cpath}/case.json", "w") as f:
     json.dump(data, f, indent=2)
 PYEOF
 

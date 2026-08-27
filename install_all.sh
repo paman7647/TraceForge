@@ -21,6 +21,7 @@ NON_INTERACTIVE=0
 OFFLINE_MODE=0
 
 usage() {
+    local exit_code="${1:-0}"
     cat << EOF
 TraceForge Installer & Runtime Provisioner
 
@@ -42,7 +43,7 @@ Profiles:
   full               Comprehensive OSINT/DFIR stack (Python + Go + Ruby + Cargo + native tools)
   custom             Load individual component preferences from TraceForge configuration
 EOF
-    exit 0
+    exit "$exit_code"
 }
 
 while [[ $# -gt 0 ]]; do
@@ -66,14 +67,15 @@ while [[ $# -gt 0 ]]; do
             shift
             ;;
         --help|-h)
-            usage
+            usage 0
             ;;
         *)
             log_err "Unknown option: $1"
-            usage
+            usage 1
             ;;
     esac
 done
+
 
 # Normalize profile names
 PROFILE_NORM="$(echo "$PROFILE" | tr '[:upper:]' '[:lower:]')"

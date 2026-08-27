@@ -16,10 +16,16 @@ source "$ROOT_DIR/lib/platform.sh"
 
 USERNAME=${1:-""}
 
-if [[ -z "$USERNAME" ]]; then
+if [[ "$USERNAME" == "--help" || "$USERNAME" == "-h" ]]; then
+    printf 'TraceForge Module 03 — Identity & Social Media Intelligence\n\nUsage:\n  %s <username-or-handle>\n' "$0"
+    exit 0
+fi
+
+if [[ -z "$USERNAME" || "$USERNAME" == -* ]]; then
     printf 'Usage: %s <username-or-handle>\n' "$0" >&2
     exit 1
 fi
+
 
 # Sanitize username handle (only safe alphanumeric, dot, underscore, hyphen)
 CLEAN_USER="$(printf '%s' "$USERNAME" | tr -cd '[:alnum:]._-')"

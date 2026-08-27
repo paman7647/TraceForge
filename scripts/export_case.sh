@@ -16,6 +16,7 @@ source "$ROOT_DIR/lib/case.sh"
 source "$ROOT_DIR/lib/export.sh"
 
 usage() {
+    local exit_code="${1:-0}"
     cat << 'EOF'
 TraceForge — Case Export Utility
 
@@ -29,11 +30,11 @@ Options:
   --package <zip|tar.gz> Bundle outputs into a compressed archive with SHA-256 digests
   --help, -h            Show this help message
 EOF
-    exit 0
+    exit "$exit_code"
 }
 
 if [[ $# -eq 0 ]]; then
-    usage
+    usage 1
 fi
 
 CASE_ID=""
@@ -60,7 +61,7 @@ while [[ $# -gt 0 ]]; do
             shift 2
             ;;
         --help|-h)
-            usage
+            usage 0
             ;;
         *)
             if [[ -z "$CASE_ID" ]]; then
@@ -68,11 +69,12 @@ while [[ $# -gt 0 ]]; do
                 shift
             else
                 log_err "Unknown argument: $1"
-                usage
+                usage 1
             fi
             ;;
     esac
 done
+
 
 if [[ -z "$CASE_ID" ]]; then
     log_err "Case ID is required."

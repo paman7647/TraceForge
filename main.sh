@@ -1023,9 +1023,13 @@ menu_external_tools() {
                     local raw_args
                     raw_args="$(read_input "Arguments for $bin_name" "--help")"
                     printf '\n%b--- Executing: %s %s ---%b\n' "$C_CYAN" "$bin_name" "$raw_args" "$C_RESET"
-                    # Pass safely via structured invocation
-                    eval "$bin_name $raw_args" </dev/null || true
+                    local -a exec_args=()
+                    if [[ -n "$raw_args" ]]; then
+                        read -r -a exec_args <<< "$raw_args"
+                    fi
+                    "$bin_name" "${exec_args[@]}" </dev/null || true
                     printf '%b--- End of execution ---%b\n' "$C_CYAN" "$C_RESET"
+
                 fi
                 pause_menu
                 ;;
@@ -2222,9 +2226,14 @@ show_tool_details() {
                     local raw_args
                     raw_args="$(read_input "Arguments for $t_bin" "--help")"
                     printf '\n%b--- Executing: %s %s ---%b\n' "$C_CYAN" "$t_bin" "$raw_args" "$C_RESET"
-                    eval "$t_bin $raw_args" </dev/null || true
+                    local -a exec_args=()
+                    if [[ -n "$raw_args" ]]; then
+                        read -r -a exec_args <<< "$raw_args"
+                    fi
+                    "$t_bin" "${exec_args[@]}" </dev/null || true
                     printf '%b--- End of execution ---%b\n' "$C_CYAN" "$C_RESET"
                     pause_menu
+
                 fi
                 ;;
             i|I)
@@ -2327,10 +2336,11 @@ main_menu() {
                 fi
                 pause_menu
                 ;;
-            Q|QUIT|EXIT)
+            0|Q|QUIT|EXIT)
                 log_info "Exiting TraceForge."
                 exit 0
                 ;;
+
             *)
                 log_warn "Unknown option: '$raw_choice'. Choose 1-19, W, or Q."
                 pause_menu

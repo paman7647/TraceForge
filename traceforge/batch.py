@@ -32,6 +32,11 @@ RE_IPV4 = re.compile(r"^(\d{1,3}\.){3}\d{1,3}$")
 RE_IPV6 = re.compile(r"^([0-9a-fA-F]{1,4}:){7}[0-9a-fA-F]{1,4}$")
 RE_URL = re.compile(r"^https?://[^\s/$.?#].[^\s]*$", re.IGNORECASE)
 RE_DOMAIN = re.compile(r"^(?:[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\.)+[a-zA-Z]{2,}$")
+RE_SHA256 = re.compile(r"^[a-fA-F0-9]{64}$")
+RE_SHA1 = re.compile(r"^[a-fA-F0-9]{40}$")
+RE_MD5 = re.compile(r"^[a-fA-F0-9]{32}$")
+RE_CVE = re.compile(r"^CVE-[0-9]{4}-[0-9]{4,8}$", re.IGNORECASE)
+
 
 IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".gif", ".bmp", ".webp", ".tiff", ".tif", ".svg", ".heic", ".raw", ".cr2", ".nef"}
 PCAP_EXTENSIONS = {".pcap", ".pcapng", ".cap", ".dmp"}
@@ -113,11 +118,43 @@ PREDEFINED_WORKFLOWS: Dict[str, Dict[str, Any]] = {
 def classify_input_type(input_str: str) -> Dict[str, Any]:
     """Classifies an input string into its primary and specific forensic types."""
     val = input_str.strip()
-    p = Path(val)
+    if not val:
+        return {"type": "empty", "specific": "empty", "value": "", "exists": False, "length": 0}
 
-    if p.exists():
+    # Only treat as filesystem path if it actually exists or looks like a file with a known extension
+    p = Path(val)
+    if p.exists() and val not in (".", "..", "/"):
         if p.is_dir():
             return {"type": "directory", "specific": "directory", "path": str(p.resolve()), "exists": True, "size": 0}
+        if p.is_file():
+            ext = p.suffix.lower()
+            specific = "file"
+            if ext in IMAGE_EXTENSIONS:
+                specific = "image"
+            elif ext in PCAP_EXTENSIONS:
+                specific = "pcap"
+            elif ext in DOC_EXTENSIONS:
+                specific = "document"
+            elif ext in ARCHIVE_EXTENSIONS:
+                specific = "archive"
+            elif ext == ".json":
+                specific = "json"
+            elif ext == ".jsonl":
+                specific = "jsonl"
+            elif ext in (".csv", ".tsv"):
+                specific = "csv"
+            elif ext in (".txt", ".log", ".md", ".py", ".sh"):
+                specific = "text_file"
+            return {
+                "type": "file",
+                "specific": specific,
+                "path": str(p.resolve()),
+                "filename": p.name,
+                "extension": ext,
+                "exists": True,
+                "size": p.stat().st_size,
+            }
+
     ext = p.suffix.lower()
     if ext:
         specific = "file"
@@ -138,15 +175,15 @@ def classify_input_type(input_str: str) -> Dict[str, Any]:
         elif ext in (".txt", ".log", ".md", ".py", ".sh"):
             specific = "text_file"
 
-        if specific != "file" or p.exists():
+        if specific != "file":
             return {
                 "type": "file",
                 "specific": specific,
-                "path": str(p.resolve()) if p.exists() else val,
+                "path": val,
                 "filename": p.name,
                 "extension": ext,
-                "exists": p.exists(),
-                "size": p.stat().st_size if p.is_file() else 0,
+                "exists": False,
+                "size": 0,
             }
 
     # Non-filesystem string inputs
@@ -160,12 +197,21 @@ def classify_input_type(input_str: str) -> Dict[str, Any]:
         return {"type": "ipv6", "specific": "ip", "value": val, "exists": False}
     if RE_DOMAIN.match(val):
         return {"type": "domain", "specific": "domain", "value": val, "exists": False}
+    if RE_SHA256.match(val):
+        return {"type": "hash", "specific": "sha256", "value": val, "exists": False}
+    if RE_SHA1.match(val):
+        return {"type": "hash", "specific": "sha1", "value": val, "exists": False}
+    if RE_MD5.match(val):
+        return {"type": "hash", "specific": "md5", "value": val, "exists": False}
+    if RE_CVE.match(val):
+        return {"type": "cve", "specific": "cve", "value": val, "exists": False}
     if val.startswith("EVID-"):
         return {"type": "case_evidence", "specific": "case_evidence", "evidence_id": val, "exists": False}
     if len(val.split()) == 1 and len(val) <= 32 and val.replace("_", "").replace("-", "").isalnum():
         return {"type": "username", "specific": "username", "value": val, "exists": False}
 
     return {"type": "text", "specific": "text", "value": val, "exists": False, "length": len(val)}
+
 
 
 def is_active_network_tool(tool_rec_or_binary: Union[ToolRecord, str]) -> bool:

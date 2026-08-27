@@ -94,8 +94,16 @@ class Case:
         dest_filename = f"{evid_id}_{src.name}"
         dest_path = self.evidence_dir / dest_filename
 
+        if dest_path.exists():
+            try:
+                os.chmod(dest_path, 0o644)
+                dest_path.unlink()
+            except Exception:
+                pass
+
         shutil.copy2(src, dest_path)
         os.chmod(dest_path, 0o444)
+
 
         hashes = hash_file(dest_path)
         size_bytes = dest_path.stat().st_size
@@ -206,9 +214,11 @@ class Case:
 
     def add_event(
         self,
-        title_or_ts: str,
+        title_or_ts: str = "",
         title_or_desc: str = "",
         description: str = "",
+        title: Optional[str] = None,
+        timestamp: Optional[str] = None,
         source: str = "Manual Record",
         severity: str = "info",
         evidence_ref: str = "",
@@ -219,36 +229,114 @@ class Case:
         evt_id = f"EVT-{len(events) + 1:04d}"
         now_ts = datetime.datetime.now(datetime.timezone.utc).isoformat()
 
-        # Handle signatures: (timestamp, title, desc...) or (title, desc...)
-        if title_or_desc:
-            # First could be timestamp or title
-            if any(c in title_or_ts for c in ("-", ":", "T", "Z")) and len(title_or_ts) >= 10:
-                ts = title_or_ts
-                title = title_or_desc
-                desc = description
+        # Resolve explicit kwargs first
+        actual_title = title or kwargs.get("name") or ""
+        actual_ts = timestamp or kwargs.get("time") or ""
+        actual_desc = description or kwargs.get("details") or ""
+
+        if not actual_title and title_or_ts:
+            if title_or_desc:
+                # First could be timestamp or title
+                if any(c in title_or_ts for c in ("-", ":", "T", "Z")) and len(title_or_ts) >= 10:
+                    actual_ts = title_or_ts
+                    actual_title = title_or_desc
+                else:
+                    actual_title = title_or_ts
+                    actual_desc = actual_desc or title_or_desc
             else:
-                ts = now_ts
-                title = title_or_ts
-                desc = title_or_desc
-        else:
-            ts = now_ts
-            title = title_or_ts
-            desc = description
+                actual_title = title_or_ts
+
+        if not actual_ts:
+            actual_ts = now_ts
+        if not actual_title:
+            actual_title = "Timeline Event"
+
 
         rec = {
             "id": evt_id,
-            "timestamp": ts,
-            "title": title,
-            "description": desc,
+            "timestamp": actual_ts,
+            "title": actual_title,
+            "description": actual_desc,
             "source": source,
             "severity": severity.lower(),
             "evidence_ref": evidence_ref,
         }
         events.append(rec)
-        self.log_action("ADD_TIMELINE_EVENT", f"Timeline event {evt_id} recorded ({title})", analyst)
+        self.log_action("ADD_TIMELINE_EVENT", f"Timeline event {evt_id} recorded ({actual_title})", analyst)
         return rec
 
+
     add_timeline_event = add_event
+
+    def verify_integrity(self) -> Dict[str, Any]:
+        """
+        Verifies the cryptographic chain of custody for all ingested evidence.
+        Recalculates SHA-256 and MD5 digests from disk and validates against recorded case manifest.
+        """
+        evidence_list = self.data.get("evidence", [])
+        results = []
+        intact_count = 0
+        tampered_count = 0
+        missing_count = 0
+
+        for item in evidence_list:
+            evid_id = item.get("id", "UNKNOWN")
+            filename = item.get("filename", "")
+            stored_filename = item.get("stored_filename", filename)
+            rel_path = item.get("relative_path", f"evidence/{stored_filename}")
+            target_path = self.case_dir / rel_path
+
+            expected_sha256 = item.get("sha256", "")
+            expected_md5 = item.get("md5", "")
+
+            if not target_path.exists():
+                missing_count += 1
+                results.append({
+                    "id": evid_id,
+                    "filename": filename,
+                    "status": "missing",
+                    "path": str(target_path),
+                    "expected_sha256": expected_sha256,
+                    "actual_sha256": None,
+                })
+                continue
+
+            current_hashes = hash_file(target_path)
+            actual_sha256 = current_hashes["sha256"]
+            actual_md5 = current_hashes["md5"]
+
+            if actual_sha256 == expected_sha256 and (not expected_md5 or actual_md5 == expected_md5):
+                intact_count += 1
+                results.append({
+                    "id": evid_id,
+                    "filename": filename,
+                    "status": "intact",
+                    "sha256": actual_sha256,
+                    "md5": actual_md5,
+                })
+            else:
+                tampered_count += 1
+                results.append({
+                    "id": evid_id,
+                    "filename": filename,
+                    "status": "tampered",
+                    "expected_sha256": expected_sha256,
+                    "actual_sha256": actual_sha256,
+                    "expected_md5": expected_md5,
+                    "actual_md5": actual_md5,
+                })
+
+        all_intact = (tampered_count == 0 and missing_count == 0)
+        return {
+            "status": "intact" if all_intact else ("tampered" if tampered_count > 0 else "missing_evidence"),
+            "intact": all_intact,
+            "total_evidence": len(evidence_list),
+            "intact_count": intact_count,
+            "tampered_count": tampered_count,
+            "missing_count": missing_count,
+            "details": results,
+        }
+
 
     def get_summary(self) -> Dict[str, Any]:
         evidence = self.data.get("evidence", [])

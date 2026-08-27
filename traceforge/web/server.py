@@ -55,6 +55,7 @@ class TraceForgeHTTPHandler(http.server.BaseHTTPRequestHandler):
         self.send_response(resp.status_code)
         self.send_header("Content-Type", resp.content_type)
         self.send_header("Content-Length", str(len(resp.body)))
+        self.send_header("Connection", "close")
         self._send_cors_headers()
         for k, v in resp.headers.items():
             self.send_header(k, v)
@@ -62,19 +63,40 @@ class TraceForgeHTTPHandler(http.server.BaseHTTPRequestHandler):
         self.wfile.write(resp.body)
 
     def _serve_static_file(self, rel_path: str) -> None:
-        static_dir = get_static_dir()
+        static_dir = get_static_dir().resolve()
         if not rel_path or rel_path == "/":
             rel_path = "index.html"
         else:
             rel_path = rel_path.lstrip("/")
 
+        # Check for traversal attempts
+        if ".." in rel_path:
+            self.send_response(403)
+            self.send_header("Content-Type", "text/plain")
+            self.send_header("Connection", "close")
+            self.end_headers()
+            self.wfile.write(b"Access Denied: Path Traversal Prohibited")
+            return
+
         target_file = (static_dir / rel_path).resolve()
-        # Prevent directory climbing
-        if not str(target_file).startswith(str(static_dir)) or not target_file.exists() or target_file.is_dir():
+        # Prevent directory climbing outside static directory
+        try:
+            target_file.relative_to(static_dir)
+        except ValueError:
+            self.send_response(403)
+            self.send_header("Content-Type", "text/plain")
+            self.send_header("Connection", "close")
+            self.end_headers()
+            self.wfile.write(b"Access Denied: Path Traversal Prohibited")
+            return
+
+        if not target_file.exists() or target_file.is_dir():
             target_file = static_dir / "index.html"
 
         if not target_file.exists():
             self.send_response(404)
+            self.send_header("Content-Type", "text/plain")
+            self.send_header("Connection", "close")
             self.end_headers()
             self.wfile.write(b"Static asset not found")
             return
@@ -95,9 +117,11 @@ class TraceForgeHTTPHandler(http.server.BaseHTTPRequestHandler):
         self.send_response(200)
         self.send_header("Content-Type", mime_type)
         self.send_header("Content-Length", str(len(content)))
+        self.send_header("Connection", "close")
         self._send_cors_headers()
         self.end_headers()
         self.wfile.write(content)
+
 
     def _handle_multipart_upload(self, case_id: str, content_type: str, body: bytes) -> Response:
         """Parses multipart/form-data upload and saves evidence specimen."""
@@ -174,13 +198,24 @@ class TraceForgeHTTPHandler(http.server.BaseHTTPRequestHandler):
         else:
             self._send_response(Response.error(f"API endpoint '{path}' not found", status_code=404))
 
+    def do_HEAD(self) -> None:
+        parsed = urllib.parse.urlparse(self.path)
+        path = parsed.path
+        if path.startswith("/api/"):
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Connection", "close")
+            self._send_cors_headers()
+            self.end_headers()
+        else:
+            self._serve_static_file(path)
+
 
 def run_server(host: str = "127.0.0.1", port: int = 8000) -> None:
-    """Runs the TraceForge localhost web server."""
+    """Runs the TraceForge localhost web server with concurrent request support."""
     server_address = (host, port)
-    # Allow address reuse
-    socketserver.TCPServer.allow_reuse_address = True
-    with socketserver.TCPServer(server_address, TraceForgeHTTPHandler) as httpd:
+    socketserver.ThreadingTCPServer.allow_reuse_address = True
+    with socketserver.ThreadingTCPServer(server_address, TraceForgeHTTPHandler) as httpd:
         print(f"\n[*] TraceForge Web Console active at http://{host}:{port}")
         print(f"[*] Workspace Root: {get_workspace_dir()}")
         print("[*] Press Ctrl+C to terminate the console.\n")
@@ -188,6 +223,7 @@ def run_server(host: str = "127.0.0.1", port: int = 8000) -> None:
             httpd.serve_forever()
         except KeyboardInterrupt:
             print("\n[+] TraceForge Web Console terminated.")
+
 
 
 # Alias for backward compatibility

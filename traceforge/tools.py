@@ -58,6 +58,14 @@ def defang_ioc(ioc_type_or_value: str, value_or_type: Optional[str] = None) -> s
         return val.replace("@", "[at]").replace(".", "[.]")
     return val
 
+NON_DOMAIN_EXTS = {
+    "exe", "dll", "bin", "so", "dylib", "txt", "log", "pdf", "docx", "doc",
+    "xlsx", "xls", "zip", "tar", "gz", "tgz", "7z", "py", "sh", "c", "cpp",
+    "h", "go", "rs", "java", "class", "jar", "png", "jpg", "jpeg", "gif",
+    "svg", "bmp", "mp3", "mp4", "wav", "avi", "mov", "iso", "img", "dat",
+    "tmp", "bak", "conf", "cfg", "ini", "json", "jsonl", "xml", "yaml", "yml", "md"
+}
+
 def extract_iocs(text: str, source: str = "stream") -> List[Dict[str, Any]]:
     """Extracts, normalizes, and deduplicates indicators of compromise."""
     iocs: Dict[str, Dict[str, Any]] = {}
@@ -75,8 +83,12 @@ def extract_iocs(text: str, source: str = "stream") -> List[Dict[str, Any]]:
             else:
                 return
         if t == "domain":
-            val = val.lower()
-            if val.endswith((".local", ".internal", ".arpa")):
+            val = val.lower().rstrip(".")
+            parts = val.split(".")
+            if len(parts) < 2:
+                return
+            tld = parts[-1]
+            if tld in NON_DOMAIN_EXTS or val.endswith((".local", ".internal", ".arpa")):
                 return
 
         key = f"{t}:{val}"
@@ -98,9 +110,10 @@ def extract_iocs(text: str, source: str = "stream") -> List[Dict[str, Any]]:
 
     # URLs
     for m in RE_URL.findall(text):
-        add_ioc("url", m, "high")
+        clean_url = m.rstrip(".,;:)\"'>]")
+        add_ioc("url", clean_url, "high")
         try:
-            parsed = urllib.parse.urlparse(m)
+            parsed = urllib.parse.urlparse(clean_url)
             if parsed.hostname:
                 if RE_IPV4.match(parsed.hostname):
                     add_ioc("ipv4", parsed.hostname, "high")
@@ -108,6 +121,7 @@ def extract_iocs(text: str, source: str = "stream") -> List[Dict[str, Any]]:
                     add_ioc("domain", parsed.hostname, "high")
         except Exception:
             pass
+
 
     # Emails
     for m in RE_EMAIL.findall(text):
@@ -299,8 +313,12 @@ def diff_snapshots(domain: str, old_items: Union[List[str], Dict[str, Any]], new
         "removed_count": removed,
         "modified_count": modified,
         "unchanged_count": unchanged,
+        "added": [it["key"] for it in diff_items if it["status"] == "added"],
+        "removed": [it["key"] for it in diff_items if it["status"] == "removed"],
+        "modified": [it["key"] for it in diff_items if it["status"] == "modified"],
         "items": diff_items,
     }
+
 
 # -----------------------------------------------------------------------------
 # 4. Evidence Indexer (Recursive with SHA-256 and Go Acceleration)

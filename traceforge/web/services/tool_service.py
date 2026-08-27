@@ -52,7 +52,8 @@ def get_tool_details(tool_identifier: str) -> Optional[Dict[str, Any]]:
     tool = cat.find_tool(tool_identifier)
     if not tool:
         return None
-    return tool.to_dict(env)
+    return tool.to_dict(env, include_version=True)
+
 
 
 def get_platform_audit() -> Dict[str, Any]:

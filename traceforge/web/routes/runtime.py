@@ -3,10 +3,20 @@ from traceforge.web.services import runtime_service
 
 
 def register_runtime_routes(router: Router) -> None:
+    @router.get("/api/health")
+    def handle_health(req: Request) -> Response:
+        status = runtime_service.get_runtime_status()
+        return Response.json({
+            "status": "healthy",
+            "version": "1.0.1",
+            "runtime_status": status,
+        })
+
     @router.get("/api/runtime/status")
     def handle_get_status(req: Request) -> Response:
         status = runtime_service.get_runtime_status()
         return Response.json(status)
+
 
     @router.post("/api/runtime/profile")
     def handle_set_profile(req: Request) -> Response:

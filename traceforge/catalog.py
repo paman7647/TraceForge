@@ -467,14 +467,15 @@ class ToolRecord:
         cap = self.get_platform_capability()
         return cap["status_label"]
 
-    def to_dict(self, env: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+    def to_dict(self, env: Optional[Dict[str, Any]] = None, include_version: bool = False) -> Dict[str, Any]:
         """Serializes tool metadata with full platform capability context."""
         if env is None:
             env = detect_full_environment()
 
         inst = self.is_installed
-        ver = self.get_version() if inst else None
+        ver = self.get_version() if (inst and include_version) else ("installed" if inst else None)
         cap = self.get_platform_capability(env)
+
 
         return {
             "id": self.id,

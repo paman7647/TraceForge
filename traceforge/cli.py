@@ -1313,7 +1313,9 @@ def build_parser() -> argparse.ArgumentParser:
     cfg_set.add_argument("key", help="Configuration key")
     cfg_set.add_argument("value", help="Configuration value")
     cfg_subs.add_parser("list", help="List entire configuration")
+    cfg_subs.add_parser("show", help="Display entire configuration (alias for list)")
     cfg_subs.add_parser("paths", help="Display all active user data and configuration paths")
+
 
     # case & cases
     case_p = subparsers.add_parser("case", help="Case management")
@@ -1624,8 +1626,9 @@ def main(args: Optional[List[str]] = None) -> int:
             print(f"  Logs Directory    : {get_logs_dir()}")
             print(f"  Project / Pkg Root: {get_project_root()}")
             print(f"  Bundled Catalog   : {get_bundled_catalog_path()}")
-        elif caction == "list" or not caction:
+        elif caction in ("list", "show") or not caction:
             print(json.dumps(cfg, indent=2))
+
         elif caction == "get":
             k = parsed.key
             if "." in k:

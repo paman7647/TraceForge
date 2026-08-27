@@ -20,13 +20,6 @@ def register_tool_routes(router: Router) -> None:
         )
         return Response.json({"tools": tools, "total": len(tools)})
 
-    @router.get("/api/tools/<tool_id>")
-    def handle_get_tool(req: Request, tool_id: str) -> Response:
-        tool = tool_service.get_tool_details(tool_id)
-        if not tool:
-            return Response.error(f"Tool '{tool_id}' not found in catalog", status_code=404)
-        return Response.json({"tool": tool})
-
     @router.get("/api/catalog/platform-audit")
     def handle_platform_audit(req: Request) -> Response:
         audit = tool_service.get_platform_audit()
@@ -36,6 +29,14 @@ def register_tool_routes(router: Router) -> None:
     def handle_integration_audit(req: Request) -> Response:
         audit = tool_service.get_integration_audit()
         return Response.json({"audit": audit})
+
+    @router.get("/api/tools/<tool_id>")
+    def handle_get_tool(req: Request, tool_id: str) -> Response:
+        tool = tool_service.get_tool_details(tool_id)
+        if not tool:
+            return Response.error(f"Tool '{tool_id}' not found in catalog", status_code=404)
+        return Response.json({"tool": tool})
+
 
     @router.post("/api/tools/<tool_id>/run")
     def handle_run_tool(req: Request, tool_id: str) -> Response:

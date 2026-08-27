@@ -50,19 +50,24 @@ TraceForge enforces a single canonical source of truth for all tools in `catalog
 
 ---
 
-## 3. Testing Requirements
+## 3. Validation & Diagnostics Requirements
 
-Before submitting any Pull Request, you must run and pass the full automated test suite and pre-flight validation:
+Before submitting any Pull Request, you must run and pass the full diagnostics and static analysis checks:
 
 ```bash
-# 1. Run all unit and integration tests
-./tests/test.sh
+# 1. Run environment and runtime diagnostics
+traceforge doctor
 
-# 2. Run the release and repository health check
-./scripts/release_check.sh
+# 2. Audit catalog integrity and toolchain depth
+traceforge tools audit --integration
+
+# 3. Validate shell scripts
+for script in setup.sh run.sh install_all.sh main.sh lib/*.sh modules/*.sh scripts/*.sh; do
+  bash -n "$script"
+done
 ```
 
-All 5 test suites and ShellCheck checks must complete with exit code `0`.
+All script syntax checks and ShellCheck static analysis must complete with exit code `0`.
 
 ---
 
@@ -74,8 +79,9 @@ When submitting a Pull Request, ensure:
 - [ ] New catalog tools have verified installation strings on macOS and Linux.
 - [ ] No hardcoded local machine paths (`/Users/`, `/home/`, `/private/`) or personal credentials are included.
 - [ ] `catalog/tools.tsv`, `catalog/TOOLS.md`, and `THIRD_PARTY_NOTICES.md` are synchronized.
-- [ ] All automated tests in `./tests/test.sh` pass.
+- [ ] Runtime diagnostics and catalog audit commands pass with exit code `0`.
 - [ ] Documentation (`docs/`) is updated if features or commands were added.
+
 
 ---
 

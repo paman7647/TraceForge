@@ -21,9 +21,9 @@ cd TraceForge
 git checkout beta
 git checkout -b feature/your-feature-name
 
-# 3. Make changes and verify tests
-python3 -m unittest discover -s tests
-./scripts/release_check.sh beta
+# 3. Make changes and verify functionality
+traceforge doctor
+traceforge tools audit --integration
 
 # 4. Open a Pull Request targeting 'beta'
 ```
@@ -34,7 +34,8 @@ python3 -m unittest discover -s tests
 
 - **Portability**: Shell scripts must run on macOS (Bash 3.2) and Linux (Bash 4+). Avoid Bash 4-exclusive syntax (`declare -A`, `mapfile`).
 - **Safety**: Always quote parameter expansions (`"$target"`) and use structured arrays (`"${cmd[@]}"`).
-- **Tests**: Include automated unit or regression tests in `tests/` for all new features or bug fixes.
+- **Verification**: Ensure all script changes pass `bash -n` syntax checks and ShellCheck static analysis.
 - **Catalog Verification**: New tools added to `catalog/tools.tsv` must have verified package recipes across macOS, Linux, and Termux.
+
 
 See [Branching Workflow](branching.md) and [Development Guide](development.md) for further details.

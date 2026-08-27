@@ -36,18 +36,21 @@ cd ..
 
 ---
 
-## 3. Running Automated Tests
+## 3. Running Diagnostics & Validation
 
 ```bash
-# Run Python & Platform test suites
-python3 -m unittest discover -s tests
+# Run environment and runtime diagnostics
+traceforge doctor
 
-# Run master shell & regression test suite
-./tests/test.sh
+# Audit catalog integrity and toolchain depth
+traceforge tools audit --integration
 
-# Run pre-flight release audit
-./scripts/release_check.sh beta
+# Validate shell syntax across all scripts
+for script in setup.sh run.sh install_all.sh main.sh lib/*.sh modules/*.sh scripts/*.sh; do
+  bash -n "$script"
+done
 ```
+
 
 ---
 

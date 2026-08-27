@@ -66,8 +66,9 @@ TraceForge uses **PyPI Trusted Publishing**, eliminating the need for long-lived
 When ready to publish a new official release:
 
 ```bash
-# 1. Ensure beta branch passes all tests
-./scripts/release_check.sh beta
+# 1. Ensure beta branch passes all validation checks
+traceforge doctor
+
 
 # 2. Merge beta into master
 git checkout master

@@ -172,11 +172,11 @@ TraceForge/
 ├── go/             Native Go analytical utilities & fast-paths
 ├── modules/        Domain-specific shell investigation workflows
 ├── lib/            Shared shell libraries (platform detection, packaging, UI)
-├── scripts/        Bootstrap, release, and maintenance scripts
+├── scripts/        Bootstrap, installer, and maintenance scripts
 ├── catalog/        152-tool categorized external tool catalog
-├── docs/           Full documentation site sources (Sphinx / ReadTheDocs)
-└── tests/          Test suites and validation checks
+└── docs/           Full documentation site sources (Sphinx / ReadTheDocs)
 ```
+
 
 ---
 

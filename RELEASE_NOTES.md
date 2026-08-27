@@ -69,9 +69,10 @@ TraceForge 1.0.0 is the first stable release of the open-source OSINT, DFIR, and
 ```bash
 git clone https://github.com/paman7647/TraceForge.git
 cd TraceForge
-chmod +x install_all.sh main.sh modules/*.sh scripts/*.sh tests/*.sh
+chmod +x install_all.sh main.sh modules/*.sh scripts/*.sh setup.sh run.sh
 
 # Run installer (default: python-go profile)
+
 ./install_all.sh --profile python-go
 
 # Launch interactive menu or CLI

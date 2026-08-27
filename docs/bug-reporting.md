@@ -71,7 +71,7 @@ TraceForge follows a structured bug-fix pipeline:
      Working Branch: fix/<issue-name>
                    │
                    ▼
-  Regression Test Added in tests/ (Verifying the fix)
+   Fix Implemented & Functionality Verified
                    │
                    ▼
      Pull Request Targeting 'beta'

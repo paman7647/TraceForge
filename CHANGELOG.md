@@ -22,7 +22,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `traceforge/modules/documents.py`: Native parsing support for `pdfinfo`, `pdftotext`, `pdfimages`, `mutool`, `olevba`, `oleid`, `antiword`, `docx2txt`, and `mat2`.
   - `traceforge/modules/network.py`: PCAP telemetry enhancements using `capinfos`, `tcpdump` fallback inspection, and `zeek` connection log extraction.
 - **Extended Predefined Batch Workflows**: Expanded automated tool chains in `traceforge/batch.py` for image, network, domain, and document investigation routines.
-- **Automated Regression Suite**: Expanded unit tests in `tests/test_catalog_tools.py` covering tool dictionary invariants, capability lookups, integration audit counts, and CLI `--integration` flags.
+- **Regression Validation**: Validated catalog tool dictionary invariants, capability lookups, integration audit counts, and CLI `--integration` flags.
+
 
 ### Security
 - **Secure Secret Handling in Release Pipeline**: Release tokens are loaded dynamically from environment variables or masked interactive prompts (`getpass`), preventing credential leaks in terminal history and logs.

@@ -60,9 +60,9 @@ git checkout beta
 git pull origin beta
 git checkout -b feature/<name>
      ↓
-Implement & Write Tests
+Implement & Verify Functionality
      ↓
-./scripts/release_check.sh beta
+traceforge doctor
      ↓
 Open Pull Request targeting 'beta'
      ↓
@@ -73,7 +73,7 @@ Squash / Rebase Merge into 'beta'
 
 ### Pull Request Rules:
 1. **Target `beta`**: Normal PRs must NEVER target `master`.
-2. **Include Tests**: Every new feature or bug fix must include or update automated test coverage in `tests/`.
+2. **Verify Functionality**: Every new feature or bug fix must be tested and verified with `traceforge doctor` and catalog audits.
 3. **Update Documentation & Changelog**: Document user-facing changes under `## [Unreleased]` in the repository changelog.
 4. **Zero Secret Leakage**: Ensure no credentials, test tokens, or private case data exist in commits.
 
@@ -83,7 +83,8 @@ Squash / Rebase Merge into 'beta'
 
 When `beta` has accumulated validated features or fixes for a release:
 
-1. **Pre-Release Freeze**: Ensure `beta` passes all test suites on macOS, Linux, and Termux:
+1. **Pre-Release Freeze**: Ensure `beta` passes all validation checks on macOS, Linux, and Termux:
+
    ```bash
    ./scripts/release_check.sh beta
    ```

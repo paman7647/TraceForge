@@ -11,7 +11,8 @@ Refer to the primary [CHANGELOG.md](file:///Users/paman/TraceForge/CHANGELOG.md)
 - **Catalog Integration Depth Audit**: Added `traceforge tools audit --integration` and web API route `GET /api/tools/audit`.
 - **Toolchain Module Extensions**: Expanded automated forensics execution across image (`mediainfo`, `ffprobe`, `pngcheck`, `jhead`, `steghide`, `tesseract`, `foremost`), document (`pdfinfo`, `pdftotext`, `pdfimages`, `mutool`, `olevba`, `docx2txt`), and network (`capinfos`, `zeek`) modules.
 - **Bug Fixes**: Resolved web service capability lookups and error handling for manual tools.
-- **Testing & Verification**: 13/13 unit and integration tests passing cleanly.
+- **Diagnostics & Verification**: Runtime diagnostics and catalog integration audit passing cleanly.
+
 
 ### [1.0.0] - 2026-08-25
 - **Initial Public Release**: 152-tool catalog, hybrid Python/Go performance engine, case management, multi-format exports (STIX 2.1, MISP, HTML, CSV, PDF), 7 investigation modules, and Termux mobile support.

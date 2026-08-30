@@ -114,6 +114,38 @@ init_environment_paths() {
         esac
     fi
 
+    # 2b. Python user base binary path (pip install --user)
+    local py_user_base=""
+    if command -v python3 >/dev/null 2>&1; then
+        py_user_base="$(python3 -m site --user-base 2>/dev/null || echo "")"
+        if [[ -n "$py_user_base" && -d "$py_user_base/bin" ]]; then
+            case ":$PATH:" in
+                *":$py_user_base/bin:"*) ;;
+                *) export PATH="$py_user_base/bin:$PATH" ;;
+            esac
+        fi
+    fi
+
+    # 2c. macOS Framework Python user binary paths (~/Library/Python/*/bin)
+    if [[ "$OS_TYPE" == "darwin" && -d "$HOME/Library/Python" ]]; then
+        for py_dir in "$HOME/Library/Python"/*/bin; do
+            if [[ -d "$py_dir" ]]; then
+                case ":$PATH:" in
+                    *":$py_dir:"*) ;;
+                    *) export PATH="$py_dir:$PATH" ;;
+                esac
+            fi
+        done
+    fi
+
+    # 2d. ProjectDiscovery Tool Manager (pdtm) Go binary path
+    if [[ -d "$HOME/.pdtm/go/bin" ]]; then
+        case ":$PATH:" in
+            *":$HOME/.pdtm/go/bin:"*) ;;
+            *) export PATH="$HOME/.pdtm/go/bin:$PATH" ;;
+        esac
+    fi
+
     # 3. Go binaries ($HOME/go/bin or $GOPATH/bin)
     local go_bin="${GOPATH:-$HOME/go}/bin"
     if [[ -d "$go_bin" ]]; then
@@ -170,5 +202,105 @@ init_environment_paths() {
     hash -r 2>/dev/null || true
 }
 
+# Detects and configures shell rc files (~/.zshrc, ~/.bashrc) with global CLI paths
+persist_user_shell_paths() {
+    local target_rc=""
+    local user_shell="${SHELL:-}"
+
+    if [[ "$user_shell" == *"zsh"* || -f "$HOME/.zshrc" ]]; then
+        target_rc="$HOME/.zshrc"
+    elif [[ "$user_shell" == *"bash"* ]]; then
+        if [[ "$OS_TYPE" == "darwin" && -f "$HOME/.bash_profile" ]]; then
+            target_rc="$HOME/.bash_profile"
+        else
+            target_rc="$HOME/.bashrc"
+        fi
+    elif [[ -f "$HOME/.profile" ]]; then
+        target_rc="$HOME/.profile"
+    fi
+
+    [[ -z "$target_rc" ]] && return 0
+
+    local -a needed_paths=()
+
+    # Check ~/.local/bin
+    if [[ -d "$HOME/.local/bin" ]]; then
+        needed_paths+=('$HOME/.local/bin')
+    fi
+
+    # Check Python user base
+    if command -v python3 >/dev/null 2>&1; then
+        local pbase
+        pbase="$(python3 -m site --user-base 2>/dev/null || echo "")"
+        if [[ -n "$pbase" && -d "$pbase/bin" ]]; then
+            # Format nicely with $HOME
+            local rel_pbase="${pbase/#$HOME/\$HOME}"
+            needed_paths+=("$rel_pbase/bin")
+        fi
+    fi
+
+    # Check macOS Library Python paths
+    if [[ "$OS_TYPE" == "darwin" && -d "$HOME/Library/Python" ]]; then
+        for pdir in "$HOME/Library/Python"/*/bin; do
+            if [[ -d "$pdir" ]]; then
+                local rel_pdir="${pdir/#$HOME/\$HOME}"
+                needed_paths+=("$rel_pdir")
+            fi
+        done
+    fi
+
+    # Check Go bin
+    if [[ -d "$HOME/go/bin" ]]; then
+        needed_paths+=('$HOME/go/bin')
+    fi
+
+    # Check Cargo bin
+    if [[ -d "$HOME/.cargo/bin" ]]; then
+        needed_paths+=('$HOME/.cargo/bin')
+    fi
+
+    # Deduplicate paths
+    local -a unique_paths=()
+    for p in "${needed_paths[@]}"; do
+        local already=0
+        for u in "${unique_paths[@]}"; do
+            if [[ "$u" == "$p" ]]; then
+                already=1
+                break
+            fi
+        done
+        if [[ "$already" -eq 0 ]]; then
+            unique_paths+=("$p")
+        fi
+    done
+
+    # Check if target_rc already has these paths
+    local missing_paths=()
+    for p in "${unique_paths[@]}"; do
+        local check_str="${p//\$HOME/$HOME}"
+        if [[ -f "$target_rc" ]] && grep -Fq "$check_str" "$target_rc" 2>/dev/null; then
+            continue
+        elif [[ -f "$target_rc" ]] && grep -Fq "$p" "$target_rc" 2>/dev/null; then
+            continue
+        else
+            missing_paths+=("$p")
+        fi
+    done
+
+    if [[ ${#missing_paths[@]} -gt 0 ]]; then
+        {
+            echo ""
+            echo "# >>> TraceForge global CLI environment path >>>"
+            for mp in "${missing_paths[@]}"; do
+                echo "export PATH=\"$mp:\$PATH\""
+            done
+            echo "# <<< TraceForge global CLI environment path <<<"
+        } >> "$target_rc" 2>/dev/null || return 1
+        return 0
+    fi
+    return 0
+}
+
 detect_platform
 init_environment_paths
+

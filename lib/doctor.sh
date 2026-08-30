@@ -38,6 +38,9 @@ run_system_diagnostics() {
     if [[ "$repair_mode" -eq 1 ]]; then
         printf '%b[+] Initiating Environment & Toolchain Repair...%b\n' "$C_CYAN" "$C_RESET"
         mkdir -p "$ROOT_DIR/workspace" "$ROOT_DIR/bin" "$ROOT_DIR/docs" "$ROOT_DIR/catalog" 2>/dev/null || true
+        if command -v persist_user_shell_paths >/dev/null 2>&1; then
+            persist_user_shell_paths || true
+        fi
         if [[ -f "$ROOT_DIR/scripts/build_native.sh" ]]; then
             bash "$ROOT_DIR/scripts/build_native.sh" 2>/dev/null || true
         fi
@@ -46,6 +49,7 @@ run_system_diagnostics() {
         fi
         printf '%b[✓] Environment repair actions finished.%b\n\n' "$C_GREEN" "$C_RESET"
     fi
+
 
     local ok_count=0
     local warn_count=0

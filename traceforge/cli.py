@@ -38,12 +38,16 @@ from traceforge.modules.opsec import run_opsec_audit
 from traceforge.platform_detect import (
     detect_full_environment,
     detect_platform,
+    ensure_shell_paths_persisted,
+    get_candidate_global_bin_dirs,
     get_termux_info,
+    get_user_shell_rc_path,
     is_termux,
     is_tool_installed,
     recommend_runtime_profile,
     which_tool,
 )
+
 from traceforge.runners import (
     CAPABILITY_MATRIX,
     ToolRunner,
@@ -556,6 +560,15 @@ def run_doctor(repair: bool = False):
                 except Exception as e:
                     print(f"  [!] Non-fatal notice: Go build skipped ({e}).")
 
+        # 5. Automatically configure global shell PATH if missing
+        sh_res = ensure_shell_paths_persisted()
+        if sh_res.get("added"):
+            print(f"  [✓] Configured global CLI path(s) in {sh_res.get('rc_file')}: {', '.join(sh_res['added'])}")
+        elif sh_res.get("success"):
+            print(f"  [✓] Global CLI shell paths already verified in {sh_res.get('rc_file')}.")
+        else:
+            print(f"  [!] Notice regarding shell PATH: {sh_res.get('reason')}")
+
         print("[+] System repair routines completed.\n")
 
     print(f"\n[ Active Runtime Profile ]")
@@ -568,9 +581,23 @@ def run_doctor(repair: bool = False):
     print(f"  Package Manager  : {env['pkg_manager']}")
     print(f"  Privilege State  : {'Root / UID 0' if env.get('has_root') else ('sudo available' if env.get('sudo_available') else 'Userland (No sudo)')}")
     print(f"  Python Version   : {env['python_version']} {'(in Virtualenv)' if env['in_venv'] else ''}")
+    
+    import shutil
+    cli_on_path = shutil.which("traceforge")
+    if cli_on_path:
+        print(f"  Global CLI (PATH): ✓ Available ({cli_on_path})")
+    else:
+        cli_loc = which_tool("traceforge")
+        if cli_loc:
+            print(f"  Global CLI (PATH): ! Installed at {cli_loc} (Missing from shell $PATH)")
+            print(f"                     -> Run 'traceforge doctor --repair' to auto-configure shell profile")
+        else:
+            print(f"  Global CLI (PATH): ! Not detected on system PATH")
+
     print(f"  Go Toolchain     : {env['go_version'] or 'Not available'}")
     print(f"  Rust / Cargo     : {env['rust_version'] or 'Not available'}")
     print(f"  Free Disk Space  : {env['disk_free_gb']} GB (of {env['disk_total_gb']} GB)")
+
 
     if env.get("is_termux"):
         tinfo = env.get("termux", {})
@@ -1315,6 +1342,10 @@ def build_parser() -> argparse.ArgumentParser:
     cfg_subs.add_parser("list", help="List entire configuration")
     cfg_subs.add_parser("show", help="Display entire configuration (alias for list)")
     cfg_subs.add_parser("paths", help="Display all active user data and configuration paths")
+    cfg_shell = cfg_subs.add_parser("shell", help="Inspect and configure shell PATH profile exports")
+    cfg_shell.add_argument("--fix", "--persist", action="store_true", help="Automatically persist missing PATH directories into shell rc")
+
+
 
 
     # case & cases
@@ -1626,8 +1657,28 @@ def main(args: Optional[List[str]] = None) -> int:
             print(f"  Logs Directory    : {get_logs_dir()}")
             print(f"  Project / Pkg Root: {get_project_root()}")
             print(f"  Bundled Catalog   : {get_bundled_catalog_path()}")
+        elif caction == "shell":
+            rc_file = get_user_shell_rc_path()
+            cand_dirs = get_candidate_global_bin_dirs()
+            print("TraceForge Shell & Global Environment Configuration:")
+            print(f"  Detected Shell RC : {rc_file or 'None detected'}")
+            print("  Candidate Binary Directories:")
+            for c in cand_dirs:
+                print(f"    • {c}")
+            if getattr(parsed, "fix", False):
+                res = ensure_shell_paths_persisted()
+                if res.get("added"):
+                    print(f"\n[+] Successfully added {len(res['added'])} path(s) to {res['rc_file']}:")
+                    for a in res["added"]:
+                        print(f"    + export PATH=\"{a}:$PATH\"")
+                    print(f"[+] Run 'source {res['rc_file']}' or open a new terminal session.")
+                else:
+                    print(f"\n[✓] {res.get('message') or 'Shell configuration is already up to date.'}")
+            else:
+                print("\nTip: Run 'traceforge config shell --fix' or 'traceforge doctor --repair' to auto-configure your shell rc.")
         elif caction in ("list", "show") or not caction:
             print(json.dumps(cfg, indent=2))
+
 
         elif caction == "get":
             k = parsed.key

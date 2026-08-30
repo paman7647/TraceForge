@@ -170,10 +170,33 @@ def which_tool(tool_name: str) -> Optional[str]:
     if user_bin.exists() and os.access(user_bin, os.X_OK):
         return str(user_bin)
 
+    # 3b. Python user base bin (pip install --user)
+    try:
+        import site
+        py_user = Path(site.getuserbase()) / "bin" / tool_name
+        if py_user.exists() and os.access(py_user, os.X_OK):
+            return str(py_user)
+    except Exception:
+        pass
+
+    # 3c. macOS Library/Python framework bin directories
+    if platform.system().lower() == "darwin":
+        lib_py = Path.home() / "Library" / "Python"
+        if lib_py.is_dir():
+            for pdir in sorted(lib_py.glob("*/bin"), reverse=True):
+                cand = pdir / tool_name
+                if cand.exists() and os.access(cand, os.X_OK):
+                    return str(cand)
+
     # 4. Go bin
     go_bin = Path.home() / "go" / "bin" / tool_name
     if go_bin.exists() and os.access(go_bin, os.X_OK):
         return str(go_bin)
+
+    # 4b. ProjectDiscovery Tool Manager (pdtm) Go bin
+    pdtm_bin = Path.home() / ".pdtm" / "go" / "bin" / tool_name
+    if pdtm_bin.exists() and os.access(pdtm_bin, os.X_OK):
+        return str(pdtm_bin)
 
     # 5. Cargo bin
     cargo_bin = Path.home() / ".cargo" / "bin" / tool_name
@@ -188,11 +211,101 @@ def which_tool(tool_name: str) -> Optional[str]:
 
     return None
 
+def get_candidate_global_bin_dirs() -> list[str]:
+    """Returns candidate user binary directories that should be present on shell PATH."""
+    dirs = []
+    
+    # 1. ~/.local/bin
+    local_bin = Path.home() / ".local" / "bin"
+    if local_bin.is_dir():
+        dirs.append(str(local_bin))
+
+    # 2. Python user base bin
+    try:
+        import site
+        py_user = Path(site.getuserbase()) / "bin"
+        if py_user.is_dir():
+            dirs.append(str(py_user))
+    except Exception:
+        pass
+
+    # 3. macOS Library/Python framework bin directories
+    if platform.system().lower() == "darwin":
+        lib_py = Path.home() / "Library" / "Python"
+        if lib_py.is_dir():
+            for pdir in sorted(lib_py.glob("*/bin"), reverse=True):
+                if pdir.is_dir():
+                    dirs.append(str(pdir))
+
+    # 4. Go / Cargo / PDTM bin
+    for extra in (Path.home() / "go" / "bin", Path.home() / ".pdtm" / "go" / "bin", Path.home() / ".cargo" / "bin"):
+        if extra.is_dir():
+            dirs.append(str(extra))
+
+    # Deduplicate preserving order
+    seen = set()
+    res = []
+    for d in dirs:
+        if d not in seen:
+            seen.add(d)
+            res.append(d)
+    return res
+
+def get_user_shell_rc_path() -> Optional[Path]:
+    """Resolves the user's interactive shell profile config path."""
+    shell = os.environ.get("SHELL", "").lower()
+    home = Path.home()
+
+    if "zsh" in shell or (home / ".zshrc").exists():
+        return home / ".zshrc"
+    elif "bash" in shell:
+        if platform.system().lower() == "darwin" and (home / ".bash_profile").exists():
+            return home / ".bash_profile"
+        return home / ".bashrc"
+    elif (home / ".profile").exists():
+        return home / ".profile"
+    return None
+
+def ensure_shell_paths_persisted() -> Dict[str, Any]:
+    """Automatically detects missing CLI binary directories and appends them to user's shell rc."""
+    rc_path = get_user_shell_rc_path()
+    if not rc_path:
+        return {"success": False, "reason": "No shell rc configuration file detected."}
+
+    candidates = get_candidate_global_bin_dirs()
+    existing_content = ""
+    if rc_path.exists():
+        try:
+            with open(rc_path, "r", encoding="utf-8", errors="ignore") as f:
+                existing_content = f.read()
+        except Exception as e:
+            return {"success": False, "reason": f"Cannot read {rc_path}: {e}"}
+
+    missing = []
+    for cand in candidates:
+        rel_cand = cand.replace(str(Path.home()), "$HOME")
+        if cand not in existing_content and rel_cand not in existing_content:
+            missing.append(rel_cand)
+
+    if not missing:
+        return {"success": True, "rc_file": str(rc_path), "added": [], "message": "All global CLI directories are already configured."}
+
+    try:
+        with open(rc_path, "a", encoding="utf-8") as f:
+            f.write("\n# >>> TraceForge global CLI environment path >>>\n")
+            for m in missing:
+                f.write(f'export PATH="{m}:$PATH"\n')
+            f.write("# <<< TraceForge global CLI environment path <<<\n")
+        return {"success": True, "rc_file": str(rc_path), "added": missing, "message": f"Added {len(missing)} path(s) to {rc_path}"}
+    except Exception as e:
+        return {"success": False, "rc_file": str(rc_path), "reason": f"Failed writing to {rc_path}: {e}"}
+
 def is_tool_installed(tool_name: str) -> bool:
     return which_tool(tool_name) is not None
 
 def get_installed_version(tool_name: str) -> Optional[str]:
     path = which_tool(tool_name)
+
     if not path:
         return None
     try:

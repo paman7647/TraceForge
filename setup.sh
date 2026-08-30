@@ -406,13 +406,19 @@ fi
 chmod +x "$ROOT_DIR/run.sh" "$ROOT_DIR/main.sh" "$ROOT_DIR/setup.sh" "$ROOT_DIR/install_all.sh" \
     "$ROOT_DIR/modules"/*.sh "$ROOT_DIR/scripts"/*.sh 2>/dev/null || true
 
-# 11. Run repair diagnostics if requested
+# 11. Ensure global shell PATH exports are configured (~/.zshrc, ~/.bashrc)
+if command -v persist_user_shell_paths >/dev/null 2>&1; then
+    persist_user_shell_paths || true
+fi
+
+# 12. Run repair diagnostics if requested
 if [[ "$REPAIR_MODE" -eq 1 ]]; then
     log_step "Executing automated system repair routines..."
     "$VENV_PY" -m traceforge doctor --repair 2>/dev/null || true
 fi
 
-# 12. Dynamic Installation Summary
+# 13. Dynamic Installation Summary
+
 printf '\n%b' "$C_MAGENTA"
 printf '%s\n' '======================================================================'
 printf '%s\n' '                  TRACEFORGE INSTALLATION COMPLETE                    '

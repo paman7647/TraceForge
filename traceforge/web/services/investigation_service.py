@@ -109,25 +109,27 @@ def get_investigation_module(module_id: str) -> Optional[Dict[str, Any]]:
     return m_copy
 
 
-def run_investigation(module_id: str, target: str, case_id: Optional[str] = None) -> Dict[str, Any]:
+def run_investigation(module_id: str, target: str, case_id: Optional[str] = None, mode: str = "quick") -> Dict[str, Any]:
     """Dispatches investigation execution to domain modules safely."""
     norm_id = module_id.lower().strip()
+    norm_mode = "full" if str(mode).lower() in ("full", "deep") else "quick"
     if norm_id not in INVESTIGATION_MODULES:
         raise ValueError(f"Unknown investigation module '{module_id}'")
 
     if norm_id == "image":
-        return run_image_forensics(target, case_id=case_id)
+        return run_image_forensics(target, case_id=case_id, mode=norm_mode)
     elif norm_id == "network":
-        return run_network_recon(target, case_id=case_id)
+        return run_network_recon(target, case_id=case_id, mode=norm_mode)
     elif norm_id == "domain":
-        return run_domain_dns(target, case_id=case_id)
+        return run_domain_dns(target, case_id=case_id, mode=norm_mode)
     elif norm_id == "email":
-        return run_email_breach(target, case_id=case_id)
+        return run_email_breach(target, case_id=case_id, mode=norm_mode)
     elif norm_id == "identity":
-        return run_identity_social(target, case_id=case_id)
+        return run_identity_social(target, case_id=case_id, mode=norm_mode)
     elif norm_id == "documents":
-        return run_document_harvesting(target, case_id=case_id)
+        return run_document_harvesting(target, case_id=case_id, mode=norm_mode)
     elif norm_id == "opsec":
-        return run_opsec_audit(target, case_id=case_id)
+        return run_opsec_audit(case_id=case_id, mode=norm_mode)
     else:
         raise ValueError(f"Module '{module_id}' execution is not implemented")
+

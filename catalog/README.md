@@ -1,38 +1,28 @@
 # Central Tool Catalog Architecture
 
 The file `catalog/tools.tsv` is the single source of truth for the entire TraceForge toolkit.
+It indexes **175 thoroughly audited tools** across 13 dedicated investigation domains.
 
 ## Schema Specification
 
-`catalog/tools.tsv` is a strict, tab-separated table with 15 columns:
+`catalog/tools.tsv` is a strict, tab-separated table with 22 columns:
 
 ```text
-id  name    binary  category    subcategory ecosystem   mac_install linux_install   description status  requires_root   requires_api    requires_hardware   notes   source_url
+id  name    binary  category    subcategory ecosystem   mac_install linux_install   description status  requires_root   requires_api    requires_hardware   notes   source_url  termux_status   termux_package  termux_install  termux_notes    termux_root termux_api  termux_hardware
 ```
 
-### Column Definitions
-1. **`id`**: Unique numeric identifier (1-based index).
-2. **`name`**: Official human-readable project name.
-3. **`binary`**: Executable command name resolved on `$PATH`. Must be globally unique across catalog entries.
-4. **`category`**: One of the 7 main investigation domains.
-5. **`subcategory`**: Technical sub-discipline (e.g. "Steganography", "Subdomain Discovery", "VBA Macros").
-6. **`ecosystem`**: Delivery mechanism (`native`, `pipx`, `go`, `ruby_gem`, `cargo`, `manual`, `api`).
-7. **`mac_install`**: Homebrew formula or package name.
-8. **`linux_install`**: APT package, Go module URI, or pipx package name.
-9. **`description`**: Clear, concise functional description.
-10. **`status`**: Current verification level (`verified`, `manual`, `api`, `optional`).
-11. **`requires_root`**: Whether execution requires elevated privileges (`yes`, `no`, `optional`).
-12. **`requires_api`**: Whether operation depends on cloud API keys (`yes`, `no`, `optional`).
-13. **`requires_hardware`**: Whether physical hardware (e.g. Wi-Fi adapter, GPU) is needed (`yes`, `no`).
-14. **`notes`**: Operational notes, constraints, or usage tips.
-15. **`source_url`**: Official upstream repository or project home page.
+### Investigation Categories (13 Domains)
+1. **Media & Image Forensics** (39 tools)
+2. **Domain, DNS & Infrastructure Intelligence** (30 tools)
+3. **Document & Metadata Harvesting** (20 tools)
+4. **Network, PCAP & Wireless Forensics** (18 tools)
+5. **OPSEC & Metadata Anonymization** (17 tools)
+6. **Email, Breach & Leak Intelligence** (15 tools)
+7. **Identity, Social & SOCMINT** (12 tools)
+8. **Threat Intelligence & Passive DNS** (6 tools)
+9. **Geospatial, Wireless & IoT Intelligence** (5 tools)
+10. **Cloud & Attack Surface Exposure** (4 tools)
+11. **Financial, Blockchain & Crypto OSINT** (4 tools)
+12. **Public Records, Corporate & Darknet OSINT** (4 tools)
+13. **First-Party Suite Native Tools** (1 tool)
 
-## Synchronizing Documentation
-
-Whenever `catalog/tools.tsv` is modified, run:
-
-```bash
-./scripts/generate_catalog_docs.sh
-```
-
-This validates schema integrity and regenerates `catalog/TOOLS.md` and `docs/TOOLING.md` automatically.

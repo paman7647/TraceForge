@@ -11,7 +11,8 @@ import (
 	"time"
 )
 
-const SuiteVersion = "1.0.0"
+const SuiteVersion = "1.1.0"
+
 
 func parseCommandFlags(fs *flag.FlagSet, args []string) []string {
 	var flagArgs []string

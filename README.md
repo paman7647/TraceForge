@@ -129,10 +129,14 @@ traceforge evidence list
 echo "Suspicious node: 198.51.100.25 on malware.domain.org" | traceforge ioc extract --defang
 traceforge ioc add 203.0.113.50 --type ipv4
 
-# Run Investigation Modules
-traceforge investigate image specimen.jpg
+# API Keys & OSINT Credentials Vault
+traceforge credentials list
+traceforge credentials set SHODAN_API_KEY <YOUR_KEY>
+
+# Run Investigation Modules (Quick or Full Deep Scan)
+traceforge investigate image specimen.jpg --mode full
 traceforge investigate network capture.pcap
-traceforge investigate domain target.corp
+traceforge investigate domain target.corp --mode quick
 traceforge investigate identity analyst_handle
 traceforge investigate email suspect@domain.com
 traceforge investigate opsec
@@ -153,7 +157,7 @@ Install tool collections tailored to your environment using `./setup.sh` or `./i
 ```bash
 ./setup.sh --profile minimal       # Core CLI and essential utilities
 ./setup.sh --profile recommended   # Standard investigation toolkit
-./setup.sh --profile full          # Complete 152-tool suite
+./setup.sh --profile full          # Complete 175-tool suite
 ```
 
 Use `--dry-run` to preview installation commands without making changes:
@@ -168,14 +172,15 @@ Use `--dry-run` to preview installation commands without making changes:
 
 ```text
 TraceForge/
-├── traceforge/     Python application package (CLI, case engine, analyzers, exporters)
+├── traceforge/     Python application package (CLI, case engine, analyzers, exporters, credentials vault)
 ├── go/             Native Go analytical utilities & fast-paths
-├── modules/        Domain-specific shell investigation workflows
-├── lib/            Shared shell libraries (platform detection, packaging, UI)
+├── modules/        Domain-specific shell investigation workflows (Quick & Full scans)
+├── lib/            Shared shell libraries (platform detection, packaging, UI, credentials)
 ├── scripts/        Bootstrap, installer, and maintenance scripts
-├── catalog/        152-tool categorized external tool catalog
+├── catalog/        175-tool categorized external tool catalog (13 investigation domains)
 └── docs/           Full documentation site sources (Sphinx / ReadTheDocs)
 ```
+
 
 
 ---

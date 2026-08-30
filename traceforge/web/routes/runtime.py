@@ -8,7 +8,8 @@ def register_runtime_routes(router: Router) -> None:
         status = runtime_service.get_runtime_status()
         return Response.json({
             "status": "healthy",
-            "version": "1.0.1",
+            "version": "1.1.0",
+
             "runtime_status": status,
         })
 

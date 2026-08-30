@@ -4,7 +4,7 @@
 
 TraceForge is a command-line toolkit for open-source intelligence (OSINT), digital forensics and incident response (DFIR), network packet capture triage, evidence management, and multi-format case reporting.
 
-It provides first-party analytical tools in Python and Go, manages 152 third-party security utilities across macOS, Linux, and Android (Termux), and creates self-contained investigation workspaces with cryptographic chain-of-custody logging.
+It provides first-party analytical tools in Python and Go, manages 175 third-party security utilities across macOS, Linux, and Android (Termux), and creates self-contained investigation workspaces with cryptographic chain-of-custody logging.
 
 ---
 
@@ -12,8 +12,10 @@ It provides first-party analytical tools in Python and Go, manages 152 third-par
 
 - **Adaptive Runtime Engine**: Pure Python analytical reference tools with compiled Go helpers for high-throughput hashing and stream processing.
 - **Unified CLI & Console**: Full interactive TTY console (`traceforge` / `./main.sh`) and direct CLI subcommands for automation.
-- **152-Tool Catalog**: Curated installation and execution recipes across Homebrew, Debian/APT, Termux `pkg`, `pipx`, Go, and Cargo.
-- **7 Investigation Modules**: Built-in workflows for media forensics, network PCAPs, identity and social accounts, email breach records, domain DNS reconnaissance, document metadata, and OPSEC audits.
+- **175-Tool Catalog**: Curated installation and execution recipes across 13 investigation domains for Homebrew, Debian/APT, Termux `pkg`, `pipx`, Go, and Cargo.
+- **API Keys & Credentials Vault**: Encrypted-at-rest credential storage (`~/.traceforge/credentials.env`) for 20+ OSINT API providers with auto-masking and child-process environment injection.
+- **7 Investigation Modules**: Built-in workflows for media forensics, network PCAPs, identity and social accounts, email breach records, domain DNS reconnaissance, document metadata, and OPSEC audits (Quick & Full scans).
+
 - **Case Management & Evidence Integrity**: Self-contained cases under `workspace/` with SHA-256 evidence hashing, timeline normalization, and immutable audit logs.
 - **Multi-Format Export Subsystem**: Generates case deliverables in Markdown, standalone dark-mode HTML, relational CSV, TSV, JSON, JSONL event streams, STIX 2.1, MISP JSON, GeoJSON, KML, and signed ZIP packages.
 - **Defensive PII Redaction**: Built-in `--redact` flag to mask sensitive IP and email addresses before sharing reports.

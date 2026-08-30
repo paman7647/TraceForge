@@ -70,7 +70,8 @@ The web interface is a zero-dependency single-page application (SPA) backed by P
 10. **Deliverables & Reports**: One-click generation and downloads for Markdown (`.md`), Standalone HTML (`.html`), CSV datasets, STIX 2.1 JSON, MISP Event JSON, Timesketch JSONL, GeoJSON, and Signed ZIP Archives.
 
 #### SYSTEM
-11. **Security Tool Catalog**: Search, filter, inspect specifications, and install from the 152 audited tools across Homebrew, APT, Pacman, DNF, Termux (`pkg`), Go, pipx, and Cargo.
+11. **Security Tool Catalog**: Search, filter, inspect specifications, and install from the 175 audited tools across Homebrew, APT, Pacman, DNF, Termux (`pkg`), Go, pipx, and Cargo.
+
 12. **Runtime Configuration**: Switch profiles (`recommended`, `minimal`, `python`, `go`, `python-go`, `full`, `custom`) and inspect first-party fast-path routing.
 13. **System Doctor**: Comprehensive host diagnostics (OS, Distro, Arch, Python, Go, Rust, Package Manager, Storage) and 1-click environment repair.
 

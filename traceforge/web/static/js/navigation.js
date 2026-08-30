@@ -15,10 +15,12 @@ const VIEW_TITLES = {
   timeline: { title: "Investigation Timeline", subtitle: "Chronological sequence of forensic events and findings" },
   assets: { title: "Discovered Assets", subtitle: "Cataloged hostnames, IP endpoints, accounts, and email targets" },
   reports: { title: "Dossier & Reports", subtitle: "Multi-format case export (Markdown, HTML, JSON, STIX 2.1)" },
-  catalog: { title: "Tool Catalog", subtitle: "152 verified DFIR/OSINT utilities with platform availability" },
+  catalog: { title: "Tool Catalog", subtitle: "175 verified DFIR/OSINT utilities with platform availability" },
+  credentials: { title: "Credentials Vault", subtitle: "API key and access token management for 20+ OSINT providers" },
   runtime: { title: "Runtime & Acceleration", subtitle: "Active execution profile, Go fast-paths, and capabilities" },
   doctor: { title: "System Doctor", subtitle: "Platform diagnostics, dependency verification, and auto-repair" },
 };
+
 
 let currentRoute = "dashboard";
 const routeListeners = new Map();

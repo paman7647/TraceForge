@@ -1,6 +1,6 @@
 /**
  * TraceForge Tool Catalog Browser
- * Explores 152 OSINT/DFIR tools with platform capability checks and installation modal.
+ * Explores 175 OSINT/DFIR tools across 13 domains with platform capability checks and installation modal.
  */
 
 import { fetchJson, postJson } from "./api.js";
@@ -9,7 +9,7 @@ let allTools = [];
 let activeCategory = "all";
 
 export async function renderCatalog(container) {
-  container.innerHTML = `<div class="loading-state"><div class="spinner"></div><span>Loading 152-Tool Catalog...</span></div>`;
+  container.innerHTML = `<div class="loading-state"><div class="spinner"></div><span>Loading Tool Catalog...</span></div>`;
   try {
     const [toolsData, auditData] = await Promise.all([
       fetchJson("/api/tools"),
@@ -25,9 +25,10 @@ export async function renderCatalog(container) {
       <div class="panel">
         <div class="panel-header">
           <div>
-            <h2 class="panel-title">TraceForge Tool Catalog (152 Tools)</h2>
+            <h2 class="panel-title">TraceForge Tool Catalog (${allTools.length} Tools)</h2>
             <span class="text-subtle text-xs">Host: ${audit.display_name || "macOS"} | Installed: ${audit.installed_count} / ${audit.total_tools}</span>
           </div>
+
           <div class="catalog-summary-pills">
             <span class="badge badge-success">${audit.installed_count} Installed</span>
             <span class="badge badge-warning">${audit.missing_count} Missing</span>

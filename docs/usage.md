@@ -34,8 +34,10 @@ traceforge
   [4] Add Evidence             (Ingest evidence with SHA-256 integrity hash)
   [5] Run Investigation        (Execute one of 7 analysis modules)
   [6] TraceForge Tools         (Run native first-party analytical tools)
-  [7] Tool Catalog             (Search, inspect, and audit 152 tools)
+  [7] Tool Catalog             (Search, inspect, and audit 175 tools)
   [8] Export / Reports         (Generate Markdown, HTML, CSV, STIX, MISP)
+  [K] Credentials Vault        (Manage third-party OSINT API keys)
+  [W] Web Console              (Launch interactive local web browser UI)
   [S] Settings                 (Configure runtime profile & fast-paths)
   [D] Doctor                   (Check environment, dependencies & runtimes)
   [L] Legal / Policy           (Responsible use, disclaimers, privacy)
@@ -44,10 +46,13 @@ traceforge
 
 ### Keyboard Shortcuts:
 - **`1` - `8`**: Select case management, evidence ingestion, module execution, or report export.
+- **`K`**: Open API Keys & OSINT Credentials Vault.
+- **`W`**: Launch interactive web console (`127.0.0.1:8000`).
 - **`S`**: Open runtime settings to change active profile or configure fast-path overrides.
 - **`D`**: Run environment doctor diagnostics.
 - **`L`**: Display responsible use, legal disclaimers, and statutory policies.
 - **`Q`**: Exit cleanly.
+
 
 ---
 

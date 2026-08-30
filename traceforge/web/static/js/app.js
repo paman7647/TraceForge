@@ -16,6 +16,7 @@ import {
   renderTimeline,
 } from "./cases.js";
 import { renderCatalog } from "./catalog.js";
+import { renderCredentials } from "./credentials.js";
 import { renderInvestigations } from "./investigations.js";
 import {
   initNavigation,
@@ -43,8 +44,10 @@ async function bootApplication() {
   registerRouteHandler("assets", renderAssets);
   registerRouteHandler("reports", renderReports);
   registerRouteHandler("catalog", renderCatalog);
+  registerRouteHandler("credentials", renderCredentials);
   registerRouteHandler("runtime", renderRuntime);
   registerRouteHandler("doctor", renderDoctor);
+
 
   // 3. Load Active Case State
   await loadActiveCase();

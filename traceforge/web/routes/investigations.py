@@ -20,12 +20,14 @@ def register_investigation_routes(router: Router) -> None:
         data = req.json()
         target = data.get("target", "").strip()
         case_id = data.get("case_id", "").strip() or None
-        if not target:
+        mode = data.get("mode", "quick").strip()
+        if not target and module_id.lower() != "opsec":
             return Response.error("Target parameter (file path or entity string) is required", status_code=400)
 
         try:
-            res = investigation_service.run_investigation(module_id, target, case_id=case_id)
+            res = investigation_service.run_investigation(module_id, target, case_id=case_id, mode=mode)
             return Response.json({"success": True, "results": res})
+
         except FileNotFoundError as e:
             return Response.error(str(e), status_code=404)
         except Exception as e:

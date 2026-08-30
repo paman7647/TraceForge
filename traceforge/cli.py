@@ -27,7 +27,18 @@ from traceforge.config import (
     set_feature_runtime,
     set_runtime_profile,
 )
+from traceforge.credentials import (
+    KEY_REGISTRY,
+    generate_env_template,
+    get_credentials_path,
+    load_credentials,
+    mask_key,
+    remove_credential,
+    save_credential,
+    test_credential,
+)
 from traceforge.exporters import CaseExporter
+
 from traceforge.modules.documents import run_document_harvesting
 from traceforge.modules.domain import run_domain_dns
 from traceforge.modules.email import run_email_breach
@@ -1396,6 +1407,9 @@ def build_parser() -> argparse.ArgumentParser:
     inv_p.add_argument("module_id", help="Module type (image, network, identity, email, domain, doc, opsec)")
     inv_p.add_argument("target", nargs="?", help="Target file, domain, email, or username")
     inv_p.add_argument("case_id", nargs="?", help="Associated Case ID")
+    inv_p.add_argument("--mode", choices=["quick", "full"], default="quick", help="Scan depth profile (quick vs full deep scan)")
+    inv_p.add_argument("--deep", "--full", dest="deep", action="store_true", help="Execute full deep scan using all catalog domain tools")
+
 
     # export & report
     exp_p = subparsers.add_parser("export", help="Export case reports & datasets")
@@ -1541,6 +1555,9 @@ def build_parser() -> argparse.ArgumentParser:
     mod_p.add_argument("module_id", help="Module name or number (1:image, 2:network, 3:identity, 4:email, 5:domain, 6:docs, 7:opsec)")
     mod_p.add_argument("target", nargs="?", help="Target file, domain, email, or username")
     mod_p.add_argument("case_id", nargs="?", help="Associated Case ID")
+    mod_p.add_argument("--mode", choices=["quick", "full"], default="quick", help="Scan depth profile (quick vs full deep scan)")
+    mod_p.add_argument("--deep", "--full", dest="deep", action="store_true", help="Execute full deep scan using all catalog domain tools")
+
 
     # batch
     batch_p = subparsers.add_parser("batch", help="Batch investigation & custom tool sets execution engine")
@@ -1583,12 +1600,94 @@ def build_parser() -> argparse.ArgumentParser:
     bhist_p = batch_subs.add_parser("history", help="View past batch investigation executions")
     bhist_p.add_argument("--limit", type=int, default=20, help="Max entries to display (default: 20)")
 
+    # credentials & keys vault
+    cred_p = subparsers.add_parser("credentials", help="Manage third-party OSINT API keys and provider tokens (alias: keys)")
+    cred_subs = cred_p.add_subparsers(dest="cred_action", help="Credentials action")
+    cred_subs.add_parser("list", help="List configured and available API keys (masked)")
+    c_set = cred_subs.add_parser("set", help="Save or update an API key in the secure vault")
+    c_set.add_argument("key", help="API key environment variable name (e.g. SHODAN_API_KEY, VIRUSTOTAL_API_KEY)")
+    c_set.add_argument("value", help="Secret token / API key value")
+    c_rm = cred_subs.add_parser("remove", help="Remove an API key from the vault")
+    c_rm.add_argument("key", help="API key environment variable name")
+    c_test = cred_subs.add_parser("test", help="Test connectivity and validate API key with provider")
+    c_test.add_argument("key", help="API key environment variable name to validate")
+    c_tpl = cred_subs.add_parser("template", help="Export an annotated .env.example template")
+    c_tpl.add_argument("--out", default=".env.example", help="Output file path (default: .env.example)")
+
+    keys_p = subparsers.add_parser("keys", help="Manage third-party OSINT API keys (alias for credentials)")
+    keys_subs = keys_p.add_subparsers(dest="cred_action", help="Credentials action")
+    keys_subs.add_parser("list", help="List configured API keys")
+    k_set = keys_subs.add_parser("set", help="Save or update an API key")
+    k_set.add_argument("key", help="API key variable name")
+    k_set.add_argument("value", help="Secret token / API key value")
+    k_rm = keys_subs.add_parser("remove", help="Remove an API key")
+    k_rm.add_argument("key", help="API key variable name")
+    k_test = keys_subs.add_parser("test", help="Test API key")
+    k_test.add_argument("key", help="API key variable name")
+    k_tpl = keys_subs.add_parser("template", help="Export template")
+    k_tpl.add_argument("--out", default=".env.example", help="Output path")
+
     # web
     web_p = subparsers.add_parser("web", help="Launch the local interactive TraceForge web console")
     web_p.add_argument("--host", default="127.0.0.1", help="Host interface to bind (default: 127.0.0.1)")
     web_p.add_argument("--port", type=int, default=8000, help="Port to listen on (default: 8000)")
 
     return parser
+
+def handle_credentials_command(parsed: argparse.Namespace) -> int:
+    action = getattr(parsed, "cred_action", "list")
+    if not action or action == "list":
+        creds = load_credentials()
+        print("TraceForge — API Key & OSINT Credentials Vault:")
+        print(f"Vault location: {get_credentials_path()} (chmod 600)\n")
+        print(f"{'Provider / Service':<26} {'Environment Variable':<24} {'Status / Value'}")
+        print(f"{'-'*26} {'-'*24} {'-'*30}")
+        for k, info in KEY_REGISTRY.items():
+            val = creds.get(k, "")
+            st = mask_key(val) if val else "<NOT CONFIGURED>"
+            print(f"{info['name'][:25]:<26} {k:<24} {st}")
+        return 0
+
+    if action == "set":
+        key = getattr(parsed, "key", "").strip().upper()
+        val = getattr(parsed, "value", "").strip()
+        if not key or not val:
+            print("Usage: traceforge credentials set <KEY_NAME> <VALUE>")
+            return 1
+        save_credential(key, val)
+        print(f"[+] Saved {key} to credentials vault (masked: {mask_key(val)}).")
+        return 0
+
+    if action == "remove":
+        key = getattr(parsed, "key", "").strip().upper()
+        if not key:
+            print("Usage: traceforge credentials remove <KEY_NAME>")
+            return 1
+        if remove_credential(key):
+            print(f"[+] Removed {key} from credentials vault.")
+        else:
+            print(f"[!] {key} was not found in credentials vault.")
+        return 0
+
+    if action == "test":
+        key = getattr(parsed, "key", "").strip().upper()
+        if not key:
+            print("Usage: traceforge credentials test <KEY_NAME>")
+            return 1
+        res = test_credential(key)
+        st = res.get("status", "unknown").upper()
+        msg = res.get("message", "")
+        print(f"[{st}] {key}: {msg}")
+        return 0 if st in ("VALID", "UNSUPPORTED") else 1
+
+    if action == "template":
+        out_path = getattr(parsed, "out", None) or ".env.example"
+        tpl = generate_env_template()
+        Path(out_path).write_text(tpl, encoding="utf-8")
+        print(f"[+] Exported annotated credentials template to {out_path}")
+        return 0
+
+    return 0
 
 def main(args: Optional[List[str]] = None) -> int:
     if args is None:
@@ -1614,6 +1713,10 @@ def main(args: Optional[List[str]] = None) -> int:
     if not parsed.subcommand:
         parser.print_help()
         return 0
+
+    if parsed.subcommand in ("credentials", "keys"):
+        return handle_credentials_command(parsed)
+
 
     if parsed.subcommand == "doctor":
         run_doctor(repair=getattr(parsed, "repair", False))
@@ -1847,50 +1950,52 @@ def main(args: Optional[List[str]] = None) -> int:
         mid = str(parsed.module_id).lower()
         target = parsed.target
         cid = parsed.case_id
+        scan_mode = "full" if getattr(parsed, "deep", False) or getattr(parsed, "mode", "quick") == "full" else "quick"
 
         if mid in ("1", "image"):
             if not target:
                 print("[!] Target media file required: traceforge module 1 <path>")
                 return 1
-            res = run_image_forensics(target, cid)
-            print(f"[+] Media Forensics completed. Report: {res['report_path']}")
+            res = run_image_forensics(target, cid, mode=scan_mode)
+            print(f"[+] Media Forensics ({scan_mode.upper()} SCAN) completed.\n    Report : {res['report_path']}")
         elif mid in ("2", "network", "pcap"):
             if not target:
                 print("[!] Target PCAP file required: traceforge module 2 <path>")
                 return 1
-            res = run_network_recon(target, cid)
-            print(f"[+] Network Forensics completed. Report: {res['report_path']}")
+            res = run_network_recon(target, cid, mode=scan_mode)
+            print(f"[+] Network Forensics ({scan_mode.upper()} SCAN) completed.\n    Report : {res['report_path']}")
         elif mid in ("3", "identity", "social"):
             if not target:
                 print("[!] Target username required: traceforge module 3 <username>")
                 return 1
-            res = run_identity_social(target, cid)
-            print(f"[+] Identity Intelligence completed. Report: {res['report_path']}")
+            res = run_identity_social(target, cid, mode=scan_mode)
+            print(f"[+] Identity Intelligence ({scan_mode.upper()} SCAN) completed.\n    Report : {res['report_path']}")
         elif mid in ("4", "email", "breach"):
             if not target:
                 print("[!] Target email required: traceforge module 4 <email>")
                 return 1
-            res = run_email_breach(target, cid)
-            print(f"[+] Email Intelligence completed. Report: {res['report_path']}")
+            res = run_email_breach(target, cid, mode=scan_mode)
+            print(f"[+] Email Intelligence ({scan_mode.upper()} SCAN) completed.\n    Report : {res['report_path']}")
         elif mid in ("5", "domain", "dns"):
             if not target:
                 print("[!] Target domain required: traceforge module 5 <domain>")
                 return 1
-            res = run_domain_dns(target, cid)
-            print(f"[+] Domain Reconnaissance completed. Report: {res['report_path']}")
+            res = run_domain_dns(target, cid, mode=scan_mode)
+            print(f"[+] Domain Reconnaissance ({scan_mode.upper()} SCAN) completed.\n    Report : {res['report_path']}")
         elif mid in ("6", "document", "docs"):
             if not target:
                 print("[!] Target document required: traceforge module 6 <path>")
                 return 1
-            res = run_document_harvesting(target, cid)
-            print(f"[+] Document Harvesting completed. Report: {res['report_path']}")
+            res = run_document_harvesting(target, cid, mode=scan_mode)
+            print(f"[+] Document Harvesting ({scan_mode.upper()} SCAN) completed.\n    Report : {res['report_path']}")
         elif mid in ("7", "opsec"):
-            res = run_opsec_audit(cid)
-            print(f"[+] OPSEC Audit completed. Report: {res['report_path']}")
+            res = run_opsec_audit(cid, mode=scan_mode)
+            print(f"[+] OPSEC Audit ({scan_mode.upper()} SCAN) completed.\n    Report : {res['report_path']}")
         else:
             print(f"[!] Unknown module identifier: {mid}")
             return 1
         return 0
+
 
     if parsed.subcommand in ("export", "report"):
         cid = getattr(parsed, "case_id", None)

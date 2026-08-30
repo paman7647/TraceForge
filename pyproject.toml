@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "traceforge-osint"
-version = "1.0.1"
-description = "TraceForge — Open-Source Intelligence & Digital Forensics Platform"
+version = "1.1.0"
+description = "Enterprise-Grade Open-Source Intelligence (OSINT) & Digital Forensics (DFIR) Investigation Suite"
 readme = "README.md"
 requires-python = ">=3.9"
 license = { text = "MIT" }

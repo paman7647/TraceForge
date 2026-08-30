@@ -14,30 +14,48 @@ source "$ROOT_DIR/lib/common.sh"
 # shellcheck source=lib/platform.sh
 source "$ROOT_DIR/lib/platform.sh"
 
-if [[ "${1:-}" == "--help" || "${1:-}" == "-h" ]]; then
-    printf 'TraceForge Module 07 — OPSEC & Anonymization Audit\n\nUsage:\n  %s\n' "$0"
-    exit 0
-fi
+SCAN_MODE=""
 
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --help|-h)
+            printf 'TraceForge Module 07 — OPSEC & Anonymization Audit\n\nUsage:\n  %s [options]\n\nOptions:\n  --mode <quick|full>  Scan depth profile (default: quick)\n  --quick              Execute quick triage scan\n  --deep, --full       Execute full deep scan (all 17 catalog OPSEC tools)\n  --help, -h           Show this help message\n' "$0"
+            exit 0
+            ;;
+        --mode)
+            SCAN_MODE="$2"
+            shift 2
+            ;;
+        --quick)
+            SCAN_MODE="quick"
+            shift
+            ;;
+        --deep|--full)
+            SCAN_MODE="full"
+            shift
+            ;;
+        *)
+            log_err "Unknown option: $1"
+            printf 'Usage: %s [--mode <quick|full>]\n' "$0" >&2
+            exit 1
+            ;;
+    esac
+done
 
-if [[ -n "${1:-}" ]]; then
-    log_err "Unknown option: $1"
-    printf 'Usage: %s\n' "$0" >&2
-    exit 1
-fi
-
+SCAN_MODE="$(prompt_scan_mode "quick" "$SCAN_MODE")"
+SCAN_MODE_UPPER="$(echo "$SCAN_MODE" | tr '[:lower:]' '[:upper:]')"
 RUN_DIR="$(make_run_dir "$ROOT_DIR" "opsec_audit")"
-
 REPORT="$RUN_DIR/report.txt"
 
-info "Initiating OPSEC & Anonymization environment audit..."
+info "Initiating OPSEC & Anonymization audit ($SCAN_MODE_UPPER SCAN)..."
 info "Evidence output destination: $RUN_DIR"
 
 {
     printf '===============================================================================\n'
     printf 'TraceForge — OPSEC & Privacy Environment Audit Report\n'
     printf '===============================================================================\n'
-    printf 'Host Platform : %s (%s)\n' "$OS_NAME" "$OS_ARCH"
+    printf 'Scan Target   : Operator Host System Environment\n'
+    printf 'Scan Depth    : %s SCAN\n' "$SCAN_MODE_UPPER"
     printf 'Analysis Start: %s\n\n' "$(date '+%Y-%m-%d %H:%M:%S %z')"
 } > "$REPORT"
 
@@ -121,7 +139,6 @@ SAFETY_NOTE
 
 printf 'Analysis Completed: %s\n' "$(date '+%Y-%m-%d %H:%M:%S %z')" >> "$REPORT"
 
-find "$RUN_DIR" -maxdepth 2 -type f | sort > "$RUN_DIR/manifest.txt"
+# Finalize multi-format reporting (TXT, MD, HTML, JSON, IOCs, Manifest)
+finalize_module_run "07_opsec_anonymization" "OPSEC & Privacy Environment Audit" "Host System" "$SCAN_MODE" "$RUN_DIR"
 
-info "OPSEC environment audit completed successfully."
-info "Full report written to: $REPORT"

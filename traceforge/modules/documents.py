@@ -1,15 +1,15 @@
 import datetime
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional
 
 from traceforge.case import Case, get_active_case
 from traceforge.config import get_project_root
+from traceforge.modules.reporting import generate_module_reports
 from traceforge.platform_detect import is_tool_installed
 from traceforge.runners import ToolRunner
 from traceforge.tools import extract_iocs
 
-
-def run_document_harvesting(doc_path: str, case_id: Optional[str] = None) -> Dict[str, Any]:
+def run_document_harvesting(doc_path: str, case_id: Optional[str] = None, mode: str = "quick") -> Dict[str, Any]:
     target = Path(doc_path)
     if not target.is_absolute() and not target.exists():
         target = (get_project_root() / doc_path).resolve()
@@ -19,6 +19,7 @@ def run_document_harvesting(doc_path: str, case_id: Optional[str] = None) -> Dic
     if not target.exists() or not target.is_file():
         raise FileNotFoundError(f"Document file not found: {doc_path}")
 
+    mode = "full" if mode in ("full", "deep") else "quick"
     case = Case(case_id) if case_id else get_active_case()
     out_dir = (
         case.case_dir / "modules" / "document_harvesting"
@@ -27,129 +28,145 @@ def run_document_harvesting(doc_path: str, case_id: Optional[str] = None) -> Dic
     )
     out_dir.mkdir(parents=True, exist_ok=True)
 
-    report_file = out_dir / "report.txt"
     suffix = target.suffix.lower()
-    report_lines = [
-        "=== TraceForge Document & Metadata Harvesting Report ===",
-        f"Document: {target.name}",
-        f"Path: {target}",
-        f"Size: {target.stat().st_size} bytes\n",
+    sections: List[Dict[str, Any]] = []
+
+    # 1. Specimen identification
+    doc_info = [
+        f"Document Name: {target.name}",
+        f"File Size    : {target.stat().st_size} bytes",
+        f"Extension    : {suffix}",
     ]
+    sections.append({
+        "title": "SPECIMEN INFORMATION",
+        "content": "\n".join(doc_info),
+    })
 
-    # 1. ExifTool — document metadata and embedded properties
+    # 2. ExifTool — document metadata and embedded properties
     if is_tool_installed("exiftool"):
-        res = ToolRunner.run("exiftool", [str(target)])
-        if res.success:
-            report_lines.append("--- Document Properties & Metadata (ExifTool) ---")
-            report_lines.append(res.stdout)
+        res = ToolRunner.run("exiftool", ["-a", "-u", "-g1", str(target)])
+        if res.success and res.stdout.strip():
+            sections.append({
+                "title": "DOCUMENT PROPERTIES & METADATA (ExifTool)",
+                "content": res.stdout.strip(),
+            })
 
-    # 2. PDF tools
+    # 3. PDF tools
     if suffix == ".pdf":
         if is_tool_installed("pdfinfo"):
             res = ToolRunner.run("pdfinfo", [str(target)])
-            if res.success:
-                report_lines.append("--- PDF Document Information (pdfinfo) ---")
-                report_lines.append(res.stdout)
+            if res.success and res.stdout.strip():
+                sections.append({
+                    "title": "PDF DOCUMENT INFORMATION (pdfinfo)",
+                    "content": res.stdout.strip(),
+                })
 
         if is_tool_installed("pdftotext"):
             res = ToolRunner.run("pdftotext", [str(target), "-"])
             if res.success and res.stdout.strip():
-                report_lines.append("--- PDF Text Content Preview (pdftotext) ---")
-                report_lines.extend(res.stdout.splitlines()[:60])
+                sections.append({
+                    "title": "PDF EXTRACTED TEXT PREVIEW (pdftotext)",
+                    "content": "\n".join(res.stdout.splitlines()[:60]),
+                })
 
-        if is_tool_installed("pdfimages"):
-            img_out = out_dir / "pdf_images"
-            img_out.mkdir(exist_ok=True)
-            res = ToolRunner.run("pdfimages", ["-list", str(target)])
-            if res.success and res.stdout.strip():
-                report_lines.append("--- Embedded Images (pdfimages) ---")
-                report_lines.extend(res.stdout.splitlines()[:20])
-
-        if is_tool_installed("mutool"):
-            res = ToolRunner.run("mutool", ["info", str(target)])
-            if res.success:
-                report_lines.append("--- MuPDF Document Structure (mutool) ---")
-                report_lines.append(res.stdout)
-
-    # 3. Office / OLE document analysis
+    # 4. Office / OLE document analysis
     ole_suffixes = {".doc", ".xls", ".ppt", ".docm", ".xlsm", ".pptm", ".rtf"}
     if suffix in ole_suffixes:
         if is_tool_installed("olevba"):
             res = ToolRunner.run("olevba", ["--reveal", str(target)])
-            if res.success:
-                report_lines.append("--- OLE VBA Macro Analysis (olevba) ---")
-                report_lines.append(res.stdout)
+            if res.success and res.stdout.strip():
+                sections.append({
+                    "title": "OLE VBA MACRO ANALYSIS (olevba)",
+                    "content": res.stdout.strip(),
+                })
 
         if is_tool_installed("oleid"):
             res = ToolRunner.run("oleid", [str(target)])
-            if res.success:
-                report_lines.append("--- OLE Indicators (oleid) ---")
-                report_lines.append(res.stdout)
-
-        if is_tool_installed("antiword") and suffix == ".doc":
-            res = ToolRunner.run("antiword", [str(target)])
             if res.success and res.stdout.strip():
-                report_lines.append("--- Extracted Text (antiword) ---")
-                report_lines.extend(res.stdout.splitlines()[:40])
+                sections.append({
+                    "title": "OLE EXPLOIT INDICATORS (oleid)",
+                    "content": res.stdout.strip(),
+                })
 
-    # 4. DOCX / OOXML text extraction
+    # 5. DOCX text extraction
     if suffix in (".docx", ".odt"):
         if is_tool_installed("docx2txt"):
             res = ToolRunner.run("docx2txt", [str(target), "-"])
             if res.success and res.stdout.strip():
-                report_lines.append("--- Document Text (docx2txt) ---")
-                report_lines.extend(res.stdout.splitlines()[:40])
+                sections.append({
+                    "title": "DOCUMENT TEXT (docx2txt)",
+                    "content": "\n".join(res.stdout.splitlines()[:50]),
+                })
 
-    # 5. Metadata anonymization preview
-    if is_tool_installed("mat2"):
-        res = ToolRunner.run("mat2", ["--show", str(target)])
-        if res.success and res.stdout.strip():
-            report_lines.append("--- Metadata Strippable Fields (mat2) ---")
-            report_lines.append(res.stdout)
-
-    # 6. Content search for indicators via ripgrep
+    # 6. Ripgrep / Secrets search
     if is_tool_installed("rg"):
-        # Look for common indicator patterns in the file as text
         res = ToolRunner.run("rg", [
-            "--text", "--no-heading", "--max-count", "5",
-            r"(https?://[^\s\"'<>]+|[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z]{2,}|\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b)",
+            "--text", "--no-heading", "--max-count", "15",
+            r"(password|secret|token|api[_ -]?key|bearer|private_key|confidential)",
             str(target),
         ])
         if res.success and res.stdout.strip():
-            report_lines.append("--- Pattern Matches via ripgrep ---")
-            report_lines.extend(res.stdout.splitlines()[:20])
+            sections.append({
+                "title": "HIGH INTEREST REGEX MATCHES (ripgrep)",
+                "content": res.stdout.strip(),
+            })
 
-    # 7. Raw text IOC extraction (fallback for any file type)
-    text_content = ""
-    try:
-        with open(target, "r", encoding="utf-8", errors="ignore") as f:
-            text_content = f.read(500_000)
-    except Exception:
-        pass
+    # Deep Scan Extended Tools
+    if mode == "full":
+        if is_tool_installed("qpdf") and suffix == ".pdf":
+            res = ToolRunner.run("qpdf", ["--check", str(target)])
+            sections.append({
+                "title": "PDF ENCRYPTION & STREAM CHECK (qpdf)",
+                "content": res.stdout.strip() or res.stderr.strip(),
+            })
 
-    if text_content:
-        iocs = extract_iocs(text_content, source=target.name)
-        if iocs:
-            report_lines.append("\n--- Extracted Observables & Indicators ---")
-            for i in iocs[:30]:
-                report_lines.append(f"  [{i['type']}] {i['value']} (confidence: {i['confidence']})")
-                if case:
-                    case.add_ioc(
-                        i["value"], i["type"],
-                        f"Extracted from document {target.name}",
-                        "Module 06 (Doc Harvesting)",
-                        i["confidence"],
-                    )
+        if is_tool_installed("peepdf") and suffix == ".pdf":
+            res = ToolRunner.run("peepdf", ["-f", str(target)])
+            if res.success and res.stdout.strip():
+                sections.append({
+                    "title": "PDF EXPLOIT ANALYSIS (peepdf)",
+                    "content": res.stdout.strip(),
+                })
 
-    content = "\n".join(report_lines)
-    with open(report_file, "w", encoding="utf-8") as f:
-        f.write(content)
+        if is_tool_installed("pdfid") and suffix == ".pdf":
+            res = ToolRunner.run("pdfid", [str(target)])
+            if res.success and res.stdout.strip():
+                sections.append({
+                    "title": "SUSPICIOUS PDF TAG AUDIT (pdfid)",
+                    "content": res.stdout.strip(),
+                })
+
+        if is_tool_installed("mutool") and suffix == ".pdf":
+            res = ToolRunner.run("mutool", ["info", str(target)])
+            if res.success and res.stdout.strip():
+                sections.append({
+                    "title": "MUPDF STREAM STRUCTURE (mutool)",
+                    "content": res.stdout.strip(),
+                })
+
+        if is_tool_installed("hachoir-metadata"):
+            res = ToolRunner.run("hachoir-metadata", [str(target)])
+            if res.success and res.stdout.strip():
+                sections.append({
+                    "title": "CONTAINER METADATA (hachoir-metadata)",
+                    "content": res.stdout.strip(),
+                })
+
+    # Generate multi-format structured reports
+    generated_reports = generate_module_reports(
+        module_id="06_document_harvesting",
+        module_title="Document & Metadata Harvesting",
+        target=target.name,
+        scan_mode=mode,
+        out_dir=out_dir,
+        sections=sections,
+    )
 
     if case:
         case.add_event(
             timestamp_str=datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%d %H:%M:%S"),
-            title=f"Document Harvesting on {target.name}",
-            description=f"Extracted metadata and scanned for secret indicators in {target.name}",
+            title=f"Document Harvesting on {target.name} ({mode.upper()} SCAN)",
+            description=f"Extracted metadata and scanned for indicators in {target.name} across {len(sections)} phases",
             source="Module 06 (Document Harvesting)",
             severity="info",
         )
@@ -158,5 +175,7 @@ def run_document_harvesting(doc_path: str, case_id: Optional[str] = None) -> Dic
     return {
         "status": "success",
         "output_directory": str(out_dir),
-        "report_path": str(report_file),
+        "report_path": generated_reports.get("txt", str(out_dir / "report.txt")),
+        "reports": generated_reports,
     }
+

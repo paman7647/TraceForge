@@ -2,7 +2,7 @@
 
 TraceForge bridges two categories of security software:
 1. **First-Party Analytical Tools**: High-performance built-in tools implemented in Python and compiled Go.
-2. **Third-Party Security Toolchain**: A curated catalog of 152 verified external tools across OSINT, digital forensics, and network analysis.
+2. **Third-Party Security Toolchain**: A curated catalog of 175 verified external tools across OSINT, digital forensics, threat intelligence, and network analysis.
 
 ---
 
@@ -23,23 +23,30 @@ The first-party tools run with zero external dependencies and provide high-speed
 
 ---
 
-## 2. The 152-Tool Catalog
+## 2. The 175-Tool Catalog
 
 The single source of truth for all supported external tools is:
 - **`catalog/tools.tsv`**: 22-column tab-separated dataset.
 - **`catalog/TOOLS.md`**: Human-readable catalog generated from `tools.tsv`.
 
-### Catalog Breakdown by Category
+### Catalog Breakdown by Category (13 Investigation Domains)
 
 | Category | Tool Count | Key Examples |
 |---|---|---|
-| **Media & Image Forensics** | 22 tools | `exiftool`, `binwalk`, `steghide`, `jhead`, `pngcheck`, `ffmpeg`, `foremost`, `scalpel`, `testdisk` |
-| **Network, PCAP & Wireless** | 28 tools | `tshark`, `tcpdump`, `nmap`, `masscan`, `nikto`, `hydra`, `aircrack-ng`, `hcxtools`, `zeek` |
-| **Identity & Social Recon** | 20 tools | `sherlock`, `maigret`, `blackbird`, `socialscan`, `ghunt`, `twarc2`, `snscrape` |
-| **Email & Breach Intelligence** | 16 tools | `holehe`, `h8mail`, `emailrep`, `theharvester`, `checkdmarc`, `pwnedornot` |
-| **Domain & DNS Intelligence** | 26 tools | `subfinder`, `amass`, `assetfinder`, `dnsrecon`, `dnstwist`, `wafw00f`, `shodan`, `censys` |
-| **Document Harvesting** | 18 tools | `poppler` (`pdftotext`), `oletools` (`olevba`), `mat2`, `qpdf`, `pandoc`, `peepdf` |
-| **OPSEC & Anonymization** | 22 tools | `tor`, `torsocks`, `proxychains-ng`, `gnupg`, `age`, `macchanger`, `privoxy`, `cloudflared` |
+| **Media & Image Forensics** | 39 tools | `exiftool`, `binwalk`, `steghide`, `jhead`, `pngcheck`, `ffmpeg`, `sox`, `stegsnow`, `jsteg`, `recoverjpeg` |
+| **Domain, DNS & Infrastructure** | 30 tools | `subfinder`, `amass`, `assetfinder`, `dnsrecon`, `dnstwist`, `puredns`, `alterx`, `cero`, `wafw00f` |
+| **Document Harvesting** | 20 tools | `poppler`, `oletools`, `mat2`, `qpdf`, `capa`, `floss`, `cabextract`, `pandoc` |
+| **Network, PCAP & Wireless** | 18 tools | `tshark`, `tcpdump`, `nmap`, `masscan`, `tcpprep`, `dumpcap`, `zeek` |
+| **OPSEC & Anonymization** | 17 tools | `tor`, `torsocks`, `proxychains-ng`, `srm`, `gnupg`, `age`, `privoxy`, `cloudflared` |
+| **Email & Breach Intelligence** | 15 tools | `holehe`, `h8mail`, `pwnedornot`, `crosslinked`, `theharvester`, `checkdmarc` |
+| **Identity & Social Recon** | 12 tools | `sherlock`, `maigret`, `blackbird`, `socialscan`, `ghunt`, `snscrape` |
+| **Threat Intelligence & Passive DNS** | 6 tools | `vt-cli`, `otx-cli`, `urlscan`, `abuseipdb`, `asnlookup`, `ipinfo` |
+| **Geospatial, Wireless & IoT** | 5 tools | `wigle-api`, `suncalc`, `overpass-cli`, `bettercap`, `rtl_433` |
+| **Cloud & Attack Surface Exposure** | 4 tools | `cloudlist`, `bucket-stream`, `git-hound`, `festin` |
+| **Financial & Crypto OSINT** | 4 tools | `txfetch`, `blockstream-cli`, `etherscan-cli`, `crypto-check` |
+| **Public Records & Darknet OSINT** | 4 tools | `waybackpy`, `sec-edgar`, `opencorporates`, `onionscan` |
+| **First-Party Suite Native Tools** | 1 tool | `traceforge-native` |
+
 
 ---
 

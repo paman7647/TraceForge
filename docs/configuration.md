@@ -14,7 +14,8 @@ The active profile determines which language engine handles analytical operation
 | **`python`** | Python 3 | Pure Python | Standard recommended (~50 tools) |
 | **`go`** | Python 3 (Minimal) | Compiled Go Helpers | Go utilities only |
 | **`minimal`** | Python 3 | Pure Python | Core built-in utilities only (~15 tools) |
-| **`full`** | Python 3 | Compiled Go Helpers | All 152 catalog tools |
+| **`full`** | Python 3 | Compiled Go Helpers | All 175 catalog tools |
+
 | **`custom`** | Operator-defined | Operator-defined | Fine-tuned per component |
 
 ---

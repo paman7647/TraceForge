@@ -1,7 +1,9 @@
 # TraceForge Tool Catalog
 
-The suite contains **152 thoroughly audited, unique tool records** across 8 investigation domains.
+The suite contains **175 thoroughly audited, unique tool records** across 13 investigation domains.
+
 Every entry is grounded in real upstream projects with verified package mappings and operational constraints.
+
 
 ## Media & Image Forensics
 
@@ -194,3 +196,51 @@ Every entry is grounded in real upstream projects with verified package mappings
 | ID | Name | Executable | Subcategory | Ecosystem | macOS (Brew) | Linux (APT/pipx/Go) | Description |
 |---:|---|---|---|---|---|---|---|
 | 152 | [TraceForge Native Tools](https://github.com/paman7647/TraceForge) | `traceforge-native` | Core Forensics & Normalization Engine | `go` | `traceforge-native` | `traceforge-native` | First-party native CLI engine for graph generation, snapshot diffing, streaming IOC extraction, log triage, timeline normalization, and case packaging. |
+
+## Threat Intelligence & Passive DNS
+
+| ID | Name | Executable | Subcategory | Ecosystem | macOS (Brew) | Linux (APT/pipx/Go) | Description |
+|---:|---|---|---|---|---|---|---|
+| 153 | [VirusTotal CLI](https://github.com/VirusTotal/vt-cli) | `vt` | Multi-Engine Malware & IOC Analysis | `go` | `vt-cli` | `vt-cli` | Command-line interface for VirusTotal v3 API querying hashes, IPs, domains, and URLs. |
+| 154 | [AlienVault OTX CLI](https://github.com/AlienVault-OTX/OTX-Python-SDK) | `otx` | Threat Intelligence Feeds | `pipx` | `otx-cli` | `otx-cli` | Queries Open Threat Exchange for pulses, adversary indicators, and malware families. |
+| 155 | [URLScan CLI](https://github.com/ActiveScaffold/urlscan-py) | `urlscan` | Web Page & DOM Threat Triage | `pipx` | `urlscan-py` | `urlscan-py` | Command-line client for urlscan.io to submit and query automated web page scans and DOM snapshots. |
+| 156 | [IPinfo CLI](https://github.com/ipinfo/cli) | `ipinfo` | Geolocation & ASN Lookup | `go` | `ipinfo-cli` | `ipinfo-cli` | High-accuracy IP geolocation, BGP routing, ASN, and company registry lookup tool. |
+| 157 | [AbuseIPDB CLI](https://github.com/Ares-G/abuseipdb-wrapper) | `abuseipdb` | IP Reputation & Abuse Reports | `pipx` | `abuseipdb-wrapper` | `abuseipdb-wrapper` | Checks IP addresses against the AbuseIPDB blacklist and community reports of malicious traffic. |
+| 158 | [ASNLookup](https://github.com/yassineaboukir/asnlookup) | `asnlookup` | BGP & ASN Mapping | `pipx` | `asnlookup` | `asnlookup` | Discovers autonomous system numbers, network prefixes, and IP CIDR allocations for organizations. |
+
+## Cloud & Attack Surface Exposure
+
+| ID | Name | Executable | Subcategory | Ecosystem | macOS (Brew) | Linux (APT/pipx/Go) | Description |
+|---:|---|---|---|---|---|---|---|
+| 159 | [Cloudlist](https://github.com/projectdiscovery/cloudlist) | `cloudlist` | Multi-Cloud Asset Discovery | `go` | `cloudlist` | `cloudlist` | Discovers and indexes assets, instances, and DNS records across AWS, Azure, GCP, and DigitalOcean. |
+| 160 | [S3Scanner](https://github.com/sa7mon/S3Scanner) | `s3scanner` | S3 Storage Bucket Audit | `pipx` | `s3scanner` | `s3scanner` | Scans AWS S3 buckets to detect open public access, dumps object listings, and verifies ACLs. |
+| 161 | [GitHound](https://github.com/tillson/git-hound) | `git-hound` | GitHub Repository Recon | `go` | `git-hound` | `git-hound` | Pinpoints exposed credentials and sensitive API keys across GitHub using code search patterns. |
+| 162 | [FestIn](https://github.com/cr0hn/festin) | `festin` | S3 Bucket Recon via Web Crawling | `pipx` | `festin` | `festin` | Discovers open S3 buckets by crawling web pages, JS files, and DNS CNAME records. |
+
+## Financial, Blockchain & Crypto OSINT
+
+| ID | Name | Executable | Subcategory | Ecosystem | macOS (Brew) | Linux (APT/pipx/Go) | Description |
+|---:|---|---|---|---|---|---|---|
+| 163 | [TxFetch](https://github.com/xaynov-osint/txfetch) | `txfetch` | Multi-Chain Transaction Tracing | `pipx` | `txfetch` | `txfetch` | Fetches, inspects, and parses cryptocurrency transactions and wallet balances across blockchains. |
+| 164 | [Blockstream CLI](https://github.com/Blockstream/esplora) | `blockstream-cli` | Bitcoin Ledger Analysis | `pipx` | `blockstream-cli` | `blockstream-cli` | Queries the Bitcoin blockchain via Blockstream.info API for address balances, UTXOs, and tx graphs. |
+| 165 | [Etherscan CLI](https://github.com/etherscan/etherscan-cli) | `etherscan-cli` | Ethereum Smart Contract & Wallet OSINT | `pipx` | `etherscan-cli` | `etherscan-cli` | Queries Ethereum wallets, ERC-20 token transfers, and contract source code via Etherscan. |
+| 166 | [CryptoAddress](https://github.com/kieranm/cryptoaddress) | `crypto-check` | Wallet Address Validation | `pipx` | `cryptoaddress` | `cryptoaddress` | Validates, identifies, and decodes Bitcoin, Ethereum, Monero, and 50+ crypto wallet addresses. |
+
+## Geospatial, Wireless & IoT Intelligence
+
+| ID | Name | Executable | Subcategory | Ecosystem | macOS (Brew) | Linux (APT/pipx/Go) | Description |
+|---:|---|---|---|---|---|---|---|
+| 167 | [WiGLE WiFi CLI](https://github.com/pashorts/pywigle) | `wigle-api` | Wireless Geolocation Mapping | `pipx` | `pywigle` | `pywigle` | Queries the WiGLE wireless database to geolocate WiFi BSSIDs, SSIDs, and cellular cell towers. |
+| 168 | [SunCalc CLI](https://github.com/mourner/suncalc) | `suncalc` | Shadow & Chronolocation Analysis | `pipx` | `suncalc` | `suncalc` | Calculates sun position, sunlight phases, and shadow angles for precise photographic chronolocation. |
+| 169 | [Overpass CLI](https://github.com/miku/overpass) | `overpass-cli` | OpenStreetMap Query Engine | `pipx` | `overpass` | `overpass` | Executes Overpass QL queries against OpenStreetMap to discover buildings, infrastructure, and roads. |
+| 170 | [Bettercap](https://github.com/bettercap/bettercap) | `bettercap` | Wireless & BLE Reconnaissance | `native` | `bettercap` | `bettercap` | Swiss Army knife for WiFi network scanning, BLE device discovery, and wireless packet triage. |
+| 171 | [RTL-SDR Tools](https://github.com/merbanan/rtl_433) | `rtl_433` | Radio Frequency & IoT Telemetry | `native` | `rtl_433` | `rtl_433` | Generic data receiver for 433.92 MHz, 868 MHz, and 915 MHz sensors, TPMS, and weather stations. |
+
+## Public Records, Corporate & Darknet OSINT
+
+| ID | Name | Executable | Subcategory | Ecosystem | macOS (Brew) | Linux (APT/pipx/Go) | Description |
+|---:|---|---|---|---|---|---|---|
+| 172 | [WaybackPy](https://github.com/akamhy/waybackpy) | `waybackpy` | Web Archival & History Retrieval | `pipx` | `waybackpy` | `waybackpy` | Queries and retrieves historical snapshots of web pages from the Internet Archive Wayback Machine. |
+| 173 | [SEC-EDGAR-Downloader](https://github.com/jadchaar/sec-edgar-downloader) | `sec-edgar` | SEC Corporate Filings Discovery | `pipx` | `sec-edgar-downloader` | `sec-edgar-downloader` | Downloads SEC 10-K, 10-Q, 8-K, and Form 4 corporate regulatory filings by ticker or CIK number. |
+| 174 | [OpenCorporates CLI](https://github.com/opencorporates/opencorporates-python) | `opencorporates` | Corporate Registry Search | `pipx` | `opencorporates` | `opencorporates` | Searches global company registrations, officer names, and registered agents across 140+ jurisdictions. |
+| 175 | [OnionScan](https://github.com/s-rah/onionscan) | `onionscan` | Darknet & Hidden Service Forensics | `go` | `onionscan` | `onionscan` | Scans Tor hidden services (.onion) for IP leaks, exposed server banners, and correlating PGP keys. |

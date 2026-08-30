@@ -58,7 +58,8 @@ TraceForge does not force every task into a single language. It uses each techno
 - Uses structured arrays (`"${cmd[@]}"`) to guarantee zero shell injection vulnerabilities.
 
 ### 4. Central Tool Catalog (`catalog/tools.tsv`)
-- Single source of truth defining 152 verified security tools across 22 structured columns (recipes, ecosystems, root flags, Termux support).
+- Single source of truth defining 175 verified security tools across 22 structured columns (recipes, ecosystems, root flags, Termux support) spanning 13 investigative disciplines.
+
 
 ---
 

@@ -87,6 +87,10 @@ function renderModuleStageContent(mod, prefillTarget = "") {
           <label class="form-label">${mod.input_label} *</label>
           <div class="input-action-row">
             <input type="text" class="input-text" id="moduleTargetInput" value="${prefillTarget}" placeholder="${mod.input_type === "file" ? "e.g. /path/to/specimen.jpg or workspace/evidence/file.png" : "e.g. example.com or user_handle"}" required>
+            <select class="input-select" id="moduleScanMode" style="max-width: 170px;">
+              <option value="quick" selected>⚡ Quick Scan</option>
+              <option value="full">🔍 Full Deep Scan</option>
+            </select>
             <button class="btn btn-primary btn-sm" id="btnExecuteModule" ${!mod.is_ready ? "disabled" : ""}>Run Module</button>
           </div>
         </div>
@@ -128,6 +132,7 @@ function renderModuleStageContent(mod, prefillTarget = "") {
 function attachStageListeners(container, mod) {
   const btn = container.querySelector("#btnExecuteModule");
   const input = container.querySelector("#moduleTargetInput");
+  const scanModeSelect = container.querySelector("#moduleScanMode");
   const output = container.querySelector("#moduleOutput");
   const statusBadge = container.querySelector("#moduleExecStatus");
 
@@ -135,22 +140,25 @@ function attachStageListeners(container, mod) {
 
   btn.addEventListener("click", async () => {
     const target = input.value.trim();
-    if (!target) {
+    const mode = scanModeSelect ? scanModeSelect.value : "quick";
+    if (!target && mod.id !== "opsec") {
       alert("Please specify a target specimen or input value.");
       return;
     }
 
     btn.disabled = true;
     btn.textContent = "Executing...";
-    statusBadge.textContent = "Running";
+    statusBadge.textContent = `Running (${mode.toUpperCase()})`;
     statusBadge.className = "badge badge-info";
-    output.textContent = `[*] Initializing ${mod.name} on target '${target}'...\n[*] Case ID: ${getActiveCaseId() || "Standalone"}\n`;
+    output.textContent = `[*] Initializing ${mod.name} (${mode.toUpperCase()} SCAN) on target '${target}'...\n[*] Case ID: ${getActiveCaseId() || "Standalone"}\n`;
 
     try {
       const res = await postJson(`/api/investigations/${encodeURIComponent(mod.id)}/run`, {
         target,
         case_id: getActiveCaseId(),
+        mode: mode,
       });
+
 
       statusBadge.textContent = "Complete";
       statusBadge.className = "badge badge-success";

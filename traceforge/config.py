@@ -15,8 +15,9 @@ VALID_PROFILES: Tuple[str, ...] = (
 )
 
 DEFAULT_CONFIG: Dict[str, Any] = {
-    "version": "1.0.1",
+    "version": "1.1.0",
     "workspace_dir": "workspace",
+
     "active_case": "",
     "default_format": "html",
     "redaction_enabled": False,

@@ -1,6 +1,7 @@
 from traceforge.web.router import Router
 from traceforge.web.routes.batch import register_batch_routes
 from traceforge.web.routes.cases import register_case_routes
+from traceforge.web.routes.credentials import register_credentials_routes
 from traceforge.web.routes.investigations import register_investigation_routes
 from traceforge.web.routes.reports import register_report_routes
 from traceforge.web.routes.runtime import register_runtime_routes
@@ -15,3 +16,5 @@ def register_all_routes(router: Router) -> None:
     register_batch_routes(router)
     register_report_routes(router)
     register_runtime_routes(router)
+    register_credentials_routes(router)
+

@@ -195,8 +195,33 @@ traceforge export CASE-20260825-A1B2C3 --out /tmp/deliverables/
 ## 7. Tool Catalog
 
 ### `traceforge catalog [query]`
-Search the 152-tool catalog by name, category, or binary.
+Search the 175-tool catalog by name, category, or binary.
 
 ```bash
 traceforge catalog "pcap"
 ```
+
+---
+
+## 8. Credentials Vault
+
+### `traceforge credentials <list|set|remove|test|template>`
+Manage third-party OSINT API keys (Shodan, VirusTotal, Censys, Hunter, HIBP, OTX, Chaos, IPinfo, WiGLE, Etherscan, etc.).
+
+```bash
+# List configured and masked keys
+traceforge credentials list
+
+# Save or update an API key (stored in ~/.traceforge/credentials.env with chmod 600)
+traceforge credentials set SHODAN_API_KEY <YOUR_KEY>
+
+# Remove an API key
+traceforge credentials remove SHODAN_API_KEY
+
+# Test connectivity and validate API key
+traceforge credentials test SHODAN_API_KEY
+
+# Export annotated .env template
+traceforge credentials template --out .env.example
+```
+

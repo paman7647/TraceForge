@@ -1830,8 +1830,177 @@ print('[+] Configuration restored to default values.')
 }
 
 # =============================================================================
-# [14] INSTALLATION & REPAIR
+# API KEYS & OSINT CREDENTIALS VAULT
 # =============================================================================
+
+menu_credentials_vault() {
+    while true; do
+        print_banner "API Keys & OSINT Credentials Vault"
+        printf '  Secure Vault : %b~/.traceforge/credentials.env (chmod 600)%b\n\n' "$C_CYAN" "$C_RESET"
+
+        python3 -c "
+from traceforge.credentials import KEY_REGISTRY, load_credentials, mask_key
+creds = load_credentials()
+print(f'  {\"No.\":<4} {\"Provider / Service\":<26} {\"Environment Variable\":<24} {\"Status / Value\"}')
+print(f'  {\"---\":<4} {\"-------------------------\":<26} {\"-----------------------\":<24} {\"--------------------------\"}')
+for i, (k, info) in enumerate(KEY_REGISTRY.items(), 1):
+    val = creds.get(k, '')
+    status = f'\033[0;32m{mask_key(val)}\033[0m' if val else '\033[2m<NOT CONFIGURED>\033[0m'
+    print(f'  [{i:2d}] {info[\"name\"][:25]:<26} {k:<24} {status}')
+" 2>/dev/null || true
+
+        printf '\n  %b[1]%b Add / Update an API Key (Secure Input)\n' "$C_BOLD" "$C_RESET"
+        printf '  %b[2]%b Test & Validate API Key Connectivity\n' "$C_BOLD" "$C_RESET"
+        printf '  %b[3]%b Remove an API Key from Vault\n' "$C_BOLD" "$C_RESET"
+        printf '  %b[4]%b Import from Project .env File\n' "$C_BOLD" "$C_RESET"
+        printf '  %b[5]%b Export .env.example Template\n' "$C_BOLD" "$C_RESET"
+        printf '  %b[B]%b Back to Main Menu\n' "$C_BOLD" "$C_RESET"
+        printf '  %b[Q]%b Quit\n\n' "$C_BOLD" "$C_RESET"
+
+        local ksel
+        ksel="$(read_input "Select Vault Option [1-5, B]" "")"
+        case "$ksel" in
+            1)
+                print_banner "Add / Update API Key"
+                local key_num key_name key_val
+                key_num="$(read_input "Select Key Number from table (or enter custom VAR_NAME)" "")"
+                if [[ "$key_num" =~ ^[0-9]+$ ]]; then
+                    key_name="$(python3 -c "
+from traceforge.credentials import KEY_REGISTRY
+keys = list(KEY_REGISTRY.keys())
+idx = int('$key_num') - 1
+if 0 <= idx < len(keys):
+    print(keys[idx])
+" 2>/dev/null || true)"
+                else
+                    key_name="$(echo "$key_num" | tr '[:lower:]' '[:upper:]' | tr -cd '[:alnum:]_')"
+                fi
+
+                if [[ -z "$key_name" ]]; then
+                    log_warn "Invalid selection or key name."
+                else
+                    printf '\nEnter API token / secret key for %b%s%b (input will not echo):\n' "$C_CYAN" "$key_name" "$C_RESET"
+                    stty -echo 2>/dev/null || true
+                    read -r key_val
+                    stty echo 2>/dev/null || true
+                    printf '\n'
+                    if [[ -z "$key_val" ]]; then
+                        log_warn "Key cannot be empty."
+                    else
+                        save_vault_key "$key_name" "$key_val"
+                        python3 -c "from traceforge.credentials import save_credential; save_credential('$key_name', '$key_val')" 2>/dev/null || true
+                        log_ok "API Key for '$key_name' saved to secure credentials vault."
+                    fi
+                fi
+                pause_menu
+                ;;
+            2)
+                print_banner "Test & Validate API Key"
+                local t_num t_name
+                t_num="$(read_input "Select Key Number to validate" "")"
+                if [[ "$t_num" =~ ^[0-9]+$ ]]; then
+                    t_name="$(python3 -c "
+from traceforge.credentials import KEY_REGISTRY
+keys = list(KEY_REGISTRY.keys())
+idx = int('$t_num') - 1
+if 0 <= idx < len(keys):
+    print(keys[idx])
+" 2>/dev/null || true)"
+                else
+                    t_name="$(echo "$t_num" | tr '[:lower:]' '[:upper:]' | tr -cd '[:alnum:]_')"
+                fi
+
+                if [[ -z "$t_name" ]]; then
+                    log_warn "Invalid key selection."
+                else
+                    log_step "Validating $t_name against remote provider endpoint..."
+                    python3 -c "
+from traceforge.credentials import test_credential
+res = test_credential('$t_name')
+st = res.get('status', 'unknown').upper()
+msg = res.get('message', '')
+if st == 'VALID':
+    print(f'\033[0;32m[✓] {st}: {msg}\033[0m')
+elif st == 'INVALID':
+    print(f'\033[0;31m[✗] {st}: {msg}\033[0m')
+elif st == 'MISSING':
+    print(f'\033[1;33m[!] {st}: {msg}\033[0m')
+else:
+    print(f'[*] {st}: {msg}')
+" 2>/dev/null || true
+                fi
+                pause_menu
+                ;;
+            3)
+                print_banner "Remove API Key"
+                local r_num r_name
+                r_num="$(read_input "Select Key Number to remove" "")"
+                if [[ "$r_num" =~ ^[0-9]+$ ]]; then
+                    r_name="$(python3 -c "
+from traceforge.credentials import KEY_REGISTRY
+keys = list(KEY_REGISTRY.keys())
+idx = int('$r_num') - 1
+if 0 <= idx < len(keys):
+    print(keys[idx])
+" 2>/dev/null || true)"
+                else
+                    r_name="$(echo "$r_num" | tr '[:lower:]' '[:upper:]' | tr -cd '[:alnum:]_')"
+                fi
+
+                if [[ -n "$r_name" ]]; then
+                    remove_vault_key "$r_name"
+                    python3 -c "from traceforge.credentials import remove_credential; remove_credential('$r_name')" 2>/dev/null || true
+                    log_ok "Removed '$r_name' from credentials vault."
+                fi
+                pause_menu
+                ;;
+            4)
+                print_banner "Import from .env File"
+                local env_path
+                env_path="$(read_input "Path to .env file" ".env")"
+                if [[ -f "$env_path" ]]; then
+                    python3 -c "
+from traceforge.credentials import save_credential, KEY_REGISTRY
+with open('$env_path', 'r', encoding='utf-8', errors='ignore') as f:
+    for line in f:
+        line = line.strip()
+        if line and not line.startswith('#') and '=' in line:
+            k, v = line.split('=', 1)
+            k = k.strip().upper()
+            v = v.strip().strip('\"\'')
+            if k in KEY_REGISTRY and v:
+                save_credential(k, v)
+                print(f'  [+] Imported {k}')
+" 2>/dev/null || true
+                    load_credentials_env
+                    log_ok "Import completed."
+                else
+                    log_err "File not found: $env_path"
+                fi
+                pause_menu
+                ;;
+            5)
+                print_banner "Export .env.example Template"
+                python3 -c "
+from traceforge.credentials import generate_env_template
+with open('.env.example', 'w', encoding='utf-8') as f:
+    f.write(generate_env_template())
+print('Generated .env.example in current workspace.')
+" 2>/dev/null || true
+                log_ok ".env.example created."
+                pause_menu
+                ;;
+            b|B) return 0 ;;
+            q|Q) log_info "Exiting TraceForge."; exit 0 ;;
+            *) log_warn "Invalid selection. Choose 1-5, B, or Q."; pause_menu ;;
+        esac
+    done
+}
+
+# =============================================================================
+# [15] INSTALLATION & REPAIR
+# =============================================================================
+
 menu_installation_repair() {
     while true; do
         print_banner "Installation & Repair Center"
@@ -2300,11 +2469,12 @@ main_menu() {
         printf '  %b[17]%b Updates                      (Check Git status and pull upstream master updates)\n' "$C_BOLD" "$C_RESET"
         printf '  %b[18]%b Help & Reference             (Full reference manuals, architecture, and OPSEC rules)\n' "$C_BOLD" "$C_RESET"
         printf '  %b[19]%b About & Legal Policies       (Responsible use, license, and multi-jurisdiction notices)\n' "$C_BOLD" "$C_RESET"
+        printf '  %b[K]%b  API Keys & Credentials Vault (Configure, test, and manage third-party OSINT keys)\n' "$C_BOLD" "$C_RESET"
         printf '  %b[W]%b  Start Local Web Console      (Launch interactive browser UI at http://127.0.0.1:8000)\n' "$C_BOLD" "$C_RESET"
         printf '  %b[Q]%b  Quit\n\n' "$C_BOLD" "$C_RESET"
 
         local raw_choice choice
-        raw_choice="$(read_input "Select Option [1-19, W]" "")"
+        raw_choice="$(read_input "Select Option [1-19, K, W]" "")"
         choice="$(echo "$raw_choice" | tr -d '[:space:]' | tr '[:lower:]' '[:upper:]')"
 
         case "$choice" in
@@ -2327,6 +2497,7 @@ main_menu() {
             17|U|UPD|UPDATE) menu_update_repo ;;
             18|H|HELP) menu_help_center ;;
             19|ABOUT|LEGAL) menu_about ;;
+            K|KEY|KEYS|CRED|CREDS|CREDENTIALS|VAULT) menu_credentials_vault ;;
             W|WEB)
                 print_banner "Starting TraceForge Local Web Console"
                 if need_cmd python3; then
@@ -2342,10 +2513,11 @@ main_menu() {
                 ;;
 
             *)
-                log_warn "Unknown option: '$raw_choice'. Choose 1-19, W, or Q."
+                log_warn "Unknown option: '$raw_choice'. Choose 1-19, K, W, or Q."
                 pause_menu
                 ;;
         esac
+
     done
 }
 

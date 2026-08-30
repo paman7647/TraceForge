@@ -7,7 +7,39 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.1.0] - 2026-08-31
+
+### Added
+- **API Keys & OSINT Credentials Vault**:
+  - Secure credential storage at `~/.traceforge/credentials.env` with enforced `chmod 600` file permissions.
+  - Dedicated CLI commands (`traceforge credentials list|set|remove|test|template`) and interactive menu option `[K] API Keys & Credentials Vault` in `main.sh`.
+  - Built-in registry for 20+ OSINT providers: Shodan, VirusTotal, SecurityTrails, Censys, Hunter.io, HIBP, IntelX, DeHashed, LeakCheck, AlienVault OTX, ProjectDiscovery Chaos, IPinfo, GitHub, WiGLE, Etherscan, OpenAI, and Google Gemini.
+  - Secret token masking (`tes••••••••6789`) in logs, reports, and console outputs.
+  - Automatic environment loading in child processes via `lib/credentials.sh` and `lib/common.sh`.
+- **Deep OSINT Catalog Expansion (175 Tools & 13 Categories)**:
+  - Expanded tool catalog from 152 to **175 audited tools** across **13 investigation domains** in `catalog/tools.tsv`, `traceforge/data/tools.tsv`, and `catalog/TOOLS.md`.
+  - 5 new specialized categories:
+    - *Threat Intelligence & Passive DNS*: `vt-cli`, `otx-cli`, `urlscan`, `abuseipdb`, `asnlookup`, `ipinfo`
+    - *Cloud & Attack Surface Exposure*: `cloudlist`, `bucket-stream`, `git-hound`, `festin`
+    - *Financial, Blockchain & Crypto OSINT*: `txfetch`, `blockstream-cli`, `etherscan-cli`, `crypto-check`
+    - *Geospatial, Wireless & IoT Intelligence*: `wigle-api`, `suncalc`, `overpass-cli`, `bettercap`, `rtl_433`
+    - *Public Records, Corporate & Darknet OSINT*: `waybackpy`, `sec-edgar`, `opencorporates`, `onionscan`
+- **Quick vs. Full Deep Scan Modes**:
+  - Interactive operator prompt and CLI flags (`--mode quick|full`, `--deep`) across all 7 investigation modules (`image`, `network`, `identity`, `email`, `domain`, `documents`, `opsec`).
+  - Real-time animated terminal status spinners (`run_spinner_cmd`) with elapsed timers.
+  - Standardized 6-format reporting pipeline automatically generating `report.txt`, `report.md`, `report.html`, `report.json`, `iocs.json`, and `manifest.txt` per execution.
+- **Automated Diagnostic & Environment Repair**:
+  - Enhanced `traceforge doctor --repair` and `traceforge setup` with automatic PATH detection and shell profile integration (`~/.zshrc`, `~/.bashrc`).
+
+### Fixed
+- **macOS Bash 3.2 Compatibility**: Resolved string uppercase pattern substitution failures (`${VAR^^}`) across all shell modules using POSIX-compliant `tr '[:lower:]' '[:upper:]'`.
+- **Case Exporter Data Model Invariants**: Fixed attribute lookups for findings severity, evidence tags, and timelines in `traceforge/exporters.py`.
+- **Global Executable Path Resolution**: Automated PATH persistence for pip user installations into user shell startup scripts.
+
+---
+
 ## [1.0.1] - 2026-08-26
+
 
 ### Fixed
 - **Web API Tool Filtering**: Corrected parameter resolution in `traceforge/web/services/tool_service.py` where `is_available_on_platform` was checked instead of `is_supported`.

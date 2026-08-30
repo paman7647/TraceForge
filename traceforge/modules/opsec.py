@@ -1,49 +1,79 @@
 import datetime
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional
 
 from traceforge.case import Case, get_active_case
-from traceforge.platform_detect import is_tool_installed
+from traceforge.modules.reporting import generate_module_reports
+from traceforge.platform_detect import is_tool_installed, which_tool
 from traceforge.runners import ToolRunner
 from traceforge.tools import inspect_endpoint
 
-def run_opsec_audit(case_id: Optional[str] = None) -> Dict[str, Any]:
+def run_opsec_audit(case_id: Optional[str] = None, mode: str = "quick") -> Dict[str, Any]:
+    mode = "full" if mode in ("full", "deep") else "quick"
     case = Case(case_id) if case_id else get_active_case()
     out_dir = case.case_dir / "modules" / "opsec_audit" if case else Path("workspace/opsec_audit").resolve()
     out_dir.mkdir(parents=True, exist_ok=True)
 
-    report_file = out_dir / "report.txt"
     snap = inspect_endpoint()
+    sections: List[Dict[str, Any]] = []
 
-    report_lines = [
-        "=== TraceForge OPSEC & Anonymization Audit Report ===",
-        f"Audited Host: {snap['hostname']}",
+    # 1. System endpoint posture
+    snap_info = [
+        f"Host Name       : {snap['hostname']}",
         f"Operating System: {snap['os']} ({snap['architecture']})",
-        f"Collected At: {snap['collected_at']}\n",
-        "--- System DNS Resolvers ---",
-        ", ".join(snap.get("dns_resolvers", [])) or "No nameservers found in /etc/resolv.conf",
-        "\n--- Active Operator Sessions ---",
-        "\n".join(snap.get("active_users", [])) or "No active login sessions",
-        "\n--- Open Listening Sockets ---",
-        "\n".join(snap.get("listening_ports", [])) or "No listening ports identified",
+        f"DNS Resolvers   : {', '.join(snap.get('dns_resolvers', [])) or 'N/A'}",
     ]
+    sections.append({
+        "title": "ENDPOINT BASELINE POSTURE",
+        "content": "\n".join(snap_info),
+    })
 
-    # Privacy toolchain check
-    privacy_tools = ["tor", "proxychains4", "openvpn", "wireguard", "macchanger"]
-    report_lines.append("\n--- Privacy & Proxy Toolchain Status ---")
+    # 2. Privacy and cryptography tools availability
+    privacy_tools = [
+        "mat2", "proxychains4", "tor", "torsocks", "macchanger",
+        "wg", "privoxy", "cloudflared", "dnscrypt-proxy", "stubby",
+        "ssh", "socat", "ncat", "gpg", "age", "openssl", "srm"
+    ]
+    tool_lines = [f"{'Executable':<18} {'Status':<14} {'Resolved Path'}"]
+    tool_lines.append(f"{'-'*18} {'-'*14} {'-'*30}")
     for t in privacy_tools:
-        st = "INSTALLED" if is_tool_installed(t) else "NOT INSTALLED"
-        report_lines.append(f"  - {t:<16}: {st}")
+        pth = which_tool(t)
+        st = "AVAILABLE" if pth else "MISSING"
+        tool_lines.append(f"{t:<18} {st:<14} {pth or '-'}")
 
-    content = "\n".join(report_lines)
-    with open(report_file, "w", encoding="utf-8") as f:
-        f.write(content)
+    sections.append({
+        "title": "OPSEC & CRYPTOGRAPHIC TOOLCHAINS (17 Tools)",
+        "content": "\n".join(tool_lines),
+    })
+
+    # 3. Active Sessions and Network Listeners
+    if snap.get("active_users"):
+        sections.append({
+            "title": "ACTIVE OPERATOR SESSIONS",
+            "content": "\n".join(snap.get("active_users", [])),
+        })
+
+    if snap.get("listening_ports"):
+        sections.append({
+            "title": "OPEN LISTENING SOCKETS",
+            "content": "\n".join(snap.get("listening_ports", [])),
+        })
+
+    # Generate multi-format structured reports
+    generated_reports = generate_module_reports(
+        module_id="07_opsec_anonymization",
+        module_title="OPSEC & Privacy Environment Audit",
+        target=snap['hostname'],
+        scan_mode=mode,
+        out_dir=out_dir,
+        sections=sections,
+    )
 
     if case:
         case.add_event(
             timestamp_str=datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%d %H:%M:%S"),
-            title="OPSEC & Environment Audit Executed",
-            description="Audited DNS resolvers, network sockets, and privacy toolchains.",
+            title=f"OPSEC & Environment Audit Executed ({mode.upper()} SCAN)",
+            description=f"Audited DNS resolvers, network sockets, and 17 privacy toolchains on {snap['hostname']}",
             source="Module 07 (OPSEC Audit)",
             severity="info",
         )
@@ -52,5 +82,7 @@ def run_opsec_audit(case_id: Optional[str] = None) -> Dict[str, Any]:
     return {
         "status": "success",
         "output_directory": str(out_dir),
-        "report_path": str(report_file),
+        "report_path": generated_reports.get("txt", str(out_dir / "report.txt")),
+        "reports": generated_reports,
     }
+

@@ -89,7 +89,7 @@ cid, name, analyst, org, classification, incident_ref, created_time, os_name, os
 
 case_data = {
     "schema_version": "1.0",
-    "suite_version": "1.0.1",
+    "suite_version": "1.1.0",
     "case_id": cid,
     "case_name": name,
     "analyst": analyst,
@@ -174,9 +174,10 @@ entry = {
     "input_hash": in_hash,
     "output_hash": out_hash,
     "tool": tool,
-    "tool_version": "1.0.1",
+    "tool_version": "1.1.0",
     "result": result
 }
+
 print(json.dumps(entry))
 PYEOF
 }
